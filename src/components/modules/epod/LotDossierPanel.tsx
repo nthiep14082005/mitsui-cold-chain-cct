@@ -17,6 +17,7 @@ import { Badge, LotStatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { QrCodeModal } from '@/components/ui/QrCodeModal';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { LOT_STATUS_ORDER } from '@/domain/lot-lifecycle';
 import { LotDossier } from '@/domain/claim';
 import { EpodAdjustment, Lot } from '@/types/lot-epod';
@@ -24,7 +25,7 @@ import { Organization } from '@/types/common';
 import { Product, TempGroup } from '@/types/catalog';
 
 export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
-  const { refreshTick, pushToast, triggerRefresh } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, lang } = useCct();
   const [lots, setLots] = useState<Lot[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -166,10 +167,18 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Hồ sơ Lô hàng toàn diện & Chuỗi ePOD (M4, M8)
+          {tx(
+            lang,
+            'Hồ sơ Lô hàng toàn diện & Chuỗi ePOD (M4, M8)',
+            '統合ロット台帳・ePOD チェーン履歴 (M4, M8)'
+          )}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Theo dõi vòng đời 8 trạng thái, đường nhiệt độ liên tục BG1–BG5, tách lô con và biên bản điều chỉnh bất biến.
+          {tx(
+            lang,
+            'Theo dõi vòng đời 8 trạng thái, đường nhiệt độ liên tục BG1–BG5, tách lô con và biên bản điều chỉnh bất biến.',
+            '8段階ライフサイクル、BG1〜BG5連続温度グラフ、子ロット分割、および改変不可のePOD訂正記録を管理。'
+          )}
         </p>
       </div>
 

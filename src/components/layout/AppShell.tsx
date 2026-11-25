@@ -10,7 +10,6 @@ import {
   Building2,
   ClipboardCheck,
   FileSpreadsheet,
-  Globe,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -19,14 +18,16 @@ import {
   QrCode,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   Smartphone,
   Snowflake,
   Truck,
   X,
 } from 'lucide-react';
-import { t } from '@/lib/i18n';
+import { t, tx } from '@/lib/i18n';
 import { useCct } from './CctContext';
 import { RoleSwitcher } from './RoleSwitcher';
+import { LangToggle } from './LangToggle';
 
 export interface NavItem {
   href: string;
@@ -48,7 +49,6 @@ export function AppShell({
     currentOrg,
     isAuthenticated,
     lang,
-    setLang,
     notifications,
     markNotificationRead,
     logout,
@@ -73,12 +73,12 @@ export function AppShell({
   ];
 
   const customerNav: NavItem[] = [
-    { href: '/customer', label: 'Đơn hàng & Theo dõi lô', icon: <Building2 className="w-4 h-4" /> },
-    { href: '/customer/login', label: 'Đăng nhập / Đăng ký B2B', icon: <LogIn className="w-4 h-4" /> },
+    { href: '/customer', label: t('customerOrdersTrack', lang), icon: <Building2 className="w-4 h-4" /> },
+    { href: '/customer/login', label: t('customerLoginNav', lang), icon: <LogIn className="w-4 h-4" /> },
   ];
 
   const fieldNav: NavItem[] = [
-    { href: '/field-app', label: 'Thao tác hiện trường', icon: <Smartphone className="w-4 h-4" /> },
+    { href: '/field-app', label: t('fieldOpsNav', lang), icon: <Smartphone className="w-4 h-4" /> },
   ];
 
   const navItems =
@@ -152,11 +152,10 @@ export function AppShell({
             );
           })}
 
-          {/* Strictly hide Admin/Control Tower links on Customer & Field channels */}
           {channel === 'control-tower' && (
             <div className="pt-4 mt-4 border-t border-slate-100 space-y-1">
               <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Kênh đối tác & công khai
+                {tx(lang, 'Kênh đối tác & công khai', 'パートナー・公開チャネル')}
               </div>
               <Link
                 href="/customer"
@@ -185,14 +184,14 @@ export function AppShell({
           {channel === 'customer' && (
             <div className="pt-4 mt-4 border-t border-slate-100 space-y-1">
               <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Truy xuất công khai
+                {tx(lang, 'Truy xuất công khai', '公開トレーサビリティ')}
               </div>
               <Link
                 href="/qr/qr-tg-clean-001"
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50"
               >
                 <QrCode className="w-3.5 h-3.5 text-purple-600" />
-                Tra cứu mã QR mẫu
+                {tx(lang, 'Tra cứu mã QR mẫu', 'サンプルQR確認')}
               </Link>
             </div>
           )}
@@ -200,7 +199,9 @@ export function AppShell({
 
         {currentOrg && (
           <div className="p-3 border-t border-slate-100 bg-slate-50/70">
-            <div className="text-[11px] text-slate-400 font-medium">Tổ chức hiện tại</div>
+            <div className="text-[11px] text-slate-400 font-medium">
+              {tx(lang, 'Tổ chức hiện tại', '現在の組織')}
+            </div>
             <div className="text-xs font-semibold text-slate-800 truncate">{currentOrg.name}</div>
             <div className="text-[11px] text-slate-500">{currentUser?.name}</div>
           </div>
@@ -244,16 +245,34 @@ export function AppShell({
                   <span>{item.label}</span>
                 </Link>
               ))}
+              {channel === 'customer' && (
+                <div className="pt-3 mt-3 border-t border-slate-100 space-y-1">
+                  <Link
+                    href="/qr/qr-tg-clean-001"
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-purple-600" /> {tx(lang, 'Tra cứu mã QR mẫu', 'サンプルQR確認')}
+                  </Link>
+                  <Link
+                    href="/admin"
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-amber-700"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" /> {t('adminPortal', lang)}
+                  </Link>
+                </div>
+              )}
               {channel === 'control-tower' && (
                 <div className="pt-3 mt-3 border-t border-slate-100 space-y-1">
                   <Link href="/customer" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600">
-                    <Building2 className="w-3.5 h-3.5" /> Web Khách Hàng B2B
+                    <Building2 className="w-3.5 h-3.5" /> {t('channelCustomer', lang)}
                   </Link>
                   <Link href="/field-app" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600">
-                    <Smartphone className="w-3.5 h-3.5" /> App Hiện Trường
+                    <Smartphone className="w-3.5 h-3.5" /> {t('channelFieldApp', lang)}
                   </Link>
                   <Link href="/qr/qr-tg-clean-001" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600">
-                    <QrCode className="w-3.5 h-3.5" /> Trang QR Công Khai
+                    <QrCode className="w-3.5 h-3.5" /> {t('channelPublicQr', lang)}
                   </Link>
                 </div>
               )}
@@ -269,7 +288,7 @@ export function AppShell({
             <button
               onClick={() => setDrawerOpen(true)}
               className="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
-              aria-label="Mở menu"
+              aria-label="Menu"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -283,47 +302,50 @@ export function AppShell({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <RoleSwitcher />
 
-            {channel === 'control-tower' && (
-              <button
-                onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                title="Đổi ngôn ngữ VI/EN (NFR-11)"
-              >
-                <Globe className="w-3.5 h-3.5 text-slate-500" />
-                <span>{lang.toUpperCase()}</span>
-              </button>
-            )}
+            {/* 2-Way VI <-> JA Language Toggle on ALL channels */}
+            <LangToggle />
 
-            {channel === 'customer' &&
-              (!isAuthenticated ? (
+            {channel === 'customer' && (
+              <>
                 <Link
-                  href="/customer/login"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 whitespace-nowrap"
+                  href="/admin"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-semibold hover:bg-amber-100 whitespace-nowrap"
+                  title={tx(lang, 'Chuyển sang cổng đăng nhập Admin', 'Adminポータルへ移動')}
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Đăng nhập / Đăng ký</span>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{t('adminPortal', lang)}</span>
                 </Link>
-              ) : (
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50 whitespace-nowrap"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Đăng xuất</span>
-                </button>
-              ))}
+                {!isAuthenticated ? (
+                  <Link
+                    href="/customer/login"
+                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 whitespace-nowrap"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{t('loginRegister', lang)}</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50 whitespace-nowrap"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{t('logout', lang)}</span>
+                  </button>
+                )}
+              </>
+            )}
 
             {channel === 'control-tower' && (
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50 whitespace-nowrap"
-                title="Đăng xuất phiên Quản trị"
+                title={t('logout', lang)}
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Đăng xuất</span>
+                <span className="hidden sm:inline">{t('logout', lang)}</span>
               </button>
             )}
 
@@ -332,7 +354,7 @@ export function AppShell({
               <button
                 onClick={() => setNotifOpen((v) => !v)}
                 className="relative p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
-                aria-label="Thông báo"
+                aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
@@ -352,13 +374,13 @@ export function AppShell({
                       onClick={() => setNotifOpen(false)}
                       className="text-xs text-slate-400 hover:text-slate-700"
                     >
-                      Đóng
+                      {tx(lang, 'Đóng', '閉じる')}
                     </button>
                   </div>
                   <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
                       <div className="p-4 text-xs text-slate-500 text-center">
-                        Chưa có thông báo mới.
+                        {tx(lang, 'Chưa có thông báo mới.', '新しい通知はありません。')}
                       </div>
                     ) : (
                       notifications.slice(0, 12).map((n) => {
@@ -401,7 +423,6 @@ export function AppShell({
           </div>
         </header>
 
-        {/* Page Body */}
         <main className="flex-1 p-3 sm:p-6 pb-24 lg:pb-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
@@ -420,7 +441,7 @@ export function AppShell({
               }`}
             >
               {item.icon}
-              <span className="truncate max-w-[100px]">{item.label.split('&')[0].trim()}</span>
+              <span className="truncate max-w-[100px]">{item.label.split('&')[0].split('・')[0].trim()}</span>
             </Link>
           );
         })}

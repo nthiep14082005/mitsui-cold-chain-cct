@@ -16,6 +16,7 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { MonthlyStatement } from '@/types/claim-billing-kpi';
 import { Organization } from '@/types/common';
 
@@ -37,7 +38,7 @@ interface FinancialReport {
 }
 
 export function BillingPanel() {
-  const { refreshTick, pushToast, triggerRefresh, currentUser } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, currentUser, lang } = useCct();
   const [month, setMonth] = useState('2026-11');
   const [statements, setStatements] = useState<MonthlyStatement[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -109,10 +110,18 @@ export function BillingPanel() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Tính cước Take-or-Pay & Đối soát tháng (M10)
+            {tx(
+              lang,
+              'Tính cước Take-or-Pay & Đối soát tháng (M10)',
+              'Take-or-Pay 課金計算・月次精算照合 (M10)'
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            BR-12: Phí tháng = P × max(Q_ck, Q_đạt) - B. Dòng tiền 1 chiều qua Mitsui (không ghi nhận giá mua bán nông sản BR-16).
+            {tx(
+              lang,
+              'BR-12: Phí tháng = P × max(Q_ck, Q_đạt) - B. Dòng tiền 1 chiều qua Mitsui (không ghi nhận giá mua bán nông sản BR-16).',
+              'BR-12: 月額料金 = P × max(Q_ck, Q_đạt) - B。Mitsui経由の一方向決済（農産物売買価格は記録しない BR-16）。'
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

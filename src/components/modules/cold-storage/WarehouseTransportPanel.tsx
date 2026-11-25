@@ -4,13 +4,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { WarehousePanel } from '@/components/modules/cold-storage/WarehousePanel';
 import { TransportPanel } from '@/components/modules/transport/TransportPanel';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { Organization } from '@/types/common';
 import { Product, TempGroup, Vehicle } from '@/types/catalog';
 import { Lot } from '@/types/lot-epod';
 import { Trip } from '@/types/transport-temp';
 
 export function WarehouseTransportPanel() {
-  const { refreshTick } = useCct();
+  const { refreshTick, lang } = useCct();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,10 +51,14 @@ export function WarehouseTransportPanel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Kho lạnh Bến Lức & Điều phối Vận tải (M5, M6)
+          {tx(lang, 'Kho lạnh Bến Lức & Điều phối Vận tải (M5, M6)', 'ベンルック冷蔵倉庫・配車管理 (M5, M6)')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Quản lý buồng lưu theo nhóm nhiệt, cảnh báo tồn kho &gt;= 80%, xuất FEFO và xếp chuyến tuân thủ BR-05.
+          {tx(
+            lang,
+            'Quản lý buồng lưu theo nhóm nhiệt, cảnh báo tồn kho >= 80%, xuất FEFO và xếp chuyến tuân thủ BR-05.',
+            '温度帯別の庫室管理、保管期限>=80%アラート、FEFO出庫、およびBR-05準拠の配車積載管理。'
+          )}
         </p>
       </div>
 

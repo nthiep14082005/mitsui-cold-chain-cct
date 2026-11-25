@@ -5,6 +5,7 @@ import { Gavel, Lock, MessageSquare, ShieldAlert } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { Claim } from '@/types/claim-billing-kpi';
 import { Organization } from '@/types/common';
 
@@ -13,7 +14,7 @@ interface EnrichedClaim extends Claim {
 }
 
 export function ClaimsPanel() {
-  const { refreshTick, pushToast, triggerRefresh, currentUser } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, currentUser, lang } = useCct();
   const [claims, setClaims] = useState<EnrichedClaim[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -89,10 +90,18 @@ export function ClaimsPanel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Xử lý Khiếu nại & Phân định trách nhiệm (M9 · BR-10, BR-13)
+          {tx(
+            lang,
+            'Xử lý Khiếu nại & Phân định trách nhiệm (M9 · BR-10, BR-13)',
+            'クレーム対応・責任分界裁定 (M9 · BR-10, BR-13)'
+          )}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Hệ thống tự dựng hồ sơ lô & đề xuất khâu nghi lỗi theo thứ tự ưu tiên (a)→(b)→(c)→(d). Phán quyết QC là bất biến (NFR-06).
+          {tx(
+            lang,
+            'Hệ thống tự dựng hồ sơ lô & đề xuất khâu nghi lỗi theo thứ tự ưu tiên (a)→(b)→(c)→(d). Phán quyết QC là bất biến (NFR-06).',
+            'システムがロット履歴から推定原因工程を (a)→(b)→(c)→(d) の優先順で自動提示。QC裁定は変更不可 (NFR-06)。'
+          )}
         </p>
       </div>
 

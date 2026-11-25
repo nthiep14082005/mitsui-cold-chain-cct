@@ -7,12 +7,13 @@ import { Badge, OrderStatusBadge } from '@/components/ui/Badge';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import { Modal } from '@/components/ui/Modal';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { DailyOrder, SupplyPlan } from '@/types/order-plan';
 import { Organization } from '@/types/common';
 import { Product, TempGroup } from '@/types/catalog';
 
 export function OrdersPlanPanel() {
-  const { refreshTick, pushToast, triggerRefresh } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, lang } = useCct();
   const [orders, setOrders] = useState<DailyOrder[]>([]);
   const [plans, setPlans] = useState<SupplyPlan[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -104,10 +105,14 @@ export function OrdersPlanPanel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Đơn ngày D & Kế hoạch cung ứng (Bước 1–2)
+          {tx(lang, 'Đơn ngày D & Kế hoạch cung ứng (Bước 1–2)', 'D日注文・供給計画策定 (ステップ 1–2)')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Giờ chốt đơn 14:00 D-1 (BR-01). Đơn gửi sau giờ chốt gắn nhãn Phát sinh chờ điều phối duyệt (BR-02).
+          {tx(
+            lang,
+            'Giờ chốt đơn 14:00 D-1 (BR-01). Đơn gửi sau giờ chốt gắn nhãn Phát sinh chờ điều phối duyệt (BR-02).',
+            '締切はD-1 14:00 (BR-01)。締切後の注文は「追加(締切後)」としてコーディネーター承認待ちになります (BR-02)。'
+          )}
         </p>
       </div>
 

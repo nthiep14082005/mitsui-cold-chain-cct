@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import { useCct } from '@/components/layout/CctContext';
+import { t, tx } from '@/lib/i18n';
 import { AuditLog, Organization, SystemConfig, User } from '@/types/common';
 import { Product, TempGroup, Vehicle } from '@/types/catalog';
 
 export function AdminPanel() {
-  const { refreshTick, pushToast, triggerRefresh, currentUser } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, currentUser, lang } = useCct();
   const [config, setConfig] = useState<SystemConfig | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -108,17 +109,25 @@ export function AdminPanel() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Danh mục, Cấu hình Tham số & Nhật ký Audit (M1, M13)
+            {tx(
+              lang,
+              'Danh mục, Cấu hình Tham số & Nhật ký Audit (M1, M13)',
+              'マスタ管理・運用パラメータ設定・監査ログ (M1, M13)'
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Quản trị hệ thống quản lý danh mục & tham số [GĐ]; không được sửa dữ liệu vận hành hay ePOD (NFR-06).
+            {tx(
+              lang,
+              'Quản trị hệ thống quản lý danh mục & tham số [GĐ]; không được sửa dữ liệu vận hành hay ePOD (NFR-06).',
+              'システム管理者はマスタと設定のみ管理し、確定済のePOD・温度データ・裁定は改変不可です (NFR-06)。'
+            )}
           </p>
         </div>
         <button
           onClick={handleResetDemo}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700"
         >
-          <RotateCcw className="w-4 h-4" /> Khôi phục dữ liệu mẫu (Reset Demo)
+          <RotateCcw className="w-4 h-4" /> {t('resetDemo', lang)}
         </button>
       </div>
 

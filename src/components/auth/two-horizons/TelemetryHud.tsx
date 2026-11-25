@@ -3,6 +3,9 @@
 import React from 'react';
 import { Cormorant_Garamond } from 'next/font/google';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useCct } from '@/components/layout/CctContext';
+import { LangToggle } from '@/components/layout/LangToggle';
+import { tx } from '@/lib/i18n';
 import { TelemetrySnapshot, TwoHorizonsScene } from './BlackHoleCanvas';
 
 const cormorant = Cormorant_Garamond({
@@ -23,6 +26,7 @@ export function TelemetryHud({
   onToggleSound: () => void;
   onSelectScene: (next: TwoHorizonsScene) => void;
 }) {
+  const { lang } = useCct();
   const accentText = scene === 'aurum' ? 'text-amber-300' : 'text-violet-300';
   const accentBorder = scene === 'aurum' ? 'border-amber-300/60' : 'border-violet-300/60';
   const altNormalized = Math.min(100, Math.max(0, ((telemetry.altMeters - 1) / 9) * 100));
@@ -50,17 +54,20 @@ export function TelemetryHud({
         >
           TWO HORIZONS
         </h2>
-        <div className={`font-mono text-[10px] sm:text-[11px] tracking-[0.18em] mt-0.5 ${accentText}`}>
-          {scene === 'aurum' ? 'HORIZON 01 // AURUM · GARGANTUA' : 'HORIZON 02 // VIOLA · EVENT FIELD'}
+        <div className={`font-mono text-[10px] sm:text-[11px] tracking-[0.16em] mt-0.5 ${accentText}`}>
+          {scene === 'aurum'
+            ? tx(lang, 'CẢNH 01 // AURUM · CHÂN TRỜI VÀNG', 'シーン 01 // AURUM · 事象の地平線')
+            : tx(lang, 'CẢNH 02 // VIOLA · CÁNH ĐỒNG TÍM', 'シーン 02 // VIOLA · 紫の星野')}
         </div>
       </div>
 
-      {/* Top Right Sound Toggle & Timecode/FPS */}
-      <div className="absolute top-4 right-4 sm:top-7 sm:right-8 flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-3 font-mono text-[11px] tracking-widest text-white/65">
+      {/* Top Right LangToggle, Sound Toggle & Timecode/FPS */}
+      <div className="absolute top-4 right-4 sm:top-7 sm:right-8 flex items-center gap-2 sm:gap-3">
+        <div className="hidden md:flex items-center gap-3 font-mono text-[11px] tracking-widest text-white/65">
           <span>TC {telemetry.timecode}</span>
           <span>{telemetry.fps} FPS</span>
         </div>
+        <LangToggle variant="dark" />
         <button
           type="button"
           onClick={onToggleSound}
@@ -71,17 +78,19 @@ export function TelemetryHud({
           ) : (
             <VolumeX className="w-3.5 h-3.5 text-white/60" />
           )}
-          <span>SOUND: {soundOn ? 'ON' : 'OFF'}</span>
+          <span>
+            {tx(lang, 'SOUND', 'サウンド')}: {soundOn ? 'ON' : 'OFF'}
+          </span>
         </button>
       </div>
 
-      {/* Left Telemetry Column (hidden on <= 640px mobile so form stays clean) */}
+      {/* Left Telemetry Column (hidden on <= 640px mobile) */}
       <div className="hidden sm:flex flex-col gap-1.5 absolute left-8 top-1/2 -translate-y-1/2 font-mono text-[11px] tracking-widest text-white/60">
         <div>
-          ALT <span className="text-white/90">{telemetry.altMeters.toFixed(2)}m</span>
+          {tx(lang, 'ALT', '高度')} <span className="text-white/90">{telemetry.altMeters.toFixed(2)}m</span>
         </div>
         <div>
-          TILT <span className="text-white/90">+{telemetry.tiltDeg.toFixed(1)}°</span>
+          {tx(lang, 'TILT', '傾斜')} <span className="text-white/90">+{telemetry.tiltDeg.toFixed(1)}°</span>
         </div>
         <div>
           GRAV <span className={accentText}>1.004 G</span>

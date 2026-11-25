@@ -40,6 +40,7 @@ interface CctContextValue {
   notifications: NotificationItem[];
   lang: Lang;
   setLang: (lang: Lang) => void;
+  toggleLang: () => void;
   loadingAuth: boolean;
   refreshTick: number;
   triggerRefresh: () => void;
@@ -59,6 +60,7 @@ interface CctContextValue {
   dismissToast: (id: string) => void;
 }
 
+const LOCALE_STORAGE_KEY = 'cct_locale';
 const CctContext = createContext<CctContextValue | null>(null);
 
 export function CctProvider({ children }: { children: React.ReactNode }) {
@@ -77,6 +79,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [demoUsers, setDemoUsers] = useState<DemoUserSummary[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  // SSR-safe initial locale 'vi'; hydrated from localStorage inside useEffect
   const [lang, setLangState] = useState<Lang>('vi');
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -97,8 +100,18 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('cct_lang', next);
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
     }
+  }, []);
+
+  const toggleLang = useCallback(() => {
+    setLangState((prev) => {
+      const next: Lang = prev === 'vi' ? 'ja' : 'vi';
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
+      }
+      return next;
+    });
   }, []);
 
   const loadAuth = useCallback(async () => {
@@ -138,8 +151,8 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedLang = window.localStorage.getItem('cct_lang');
-      if (savedLang === 'en' || savedLang === 'vi') {
+      const savedLang = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+      if (savedLang === 'ja' || savedLang === 'vi') {
         setLangState(savedLang);
       }
     }
@@ -186,7 +199,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(data.currentUser);
         setCurrentOrg(data.currentOrg);
         setIsAuthenticated(Boolean(data.isAuthenticated));
-        pushToast('info', `Đã chuyển sang: ${data.currentUser?.name}`);
+        pushToast('info', `Đã chuyển / 切替完了: ${data.currentUser?.name}`);
         triggerRefresh();
       } else {
         pushToast('error', data.error || 'Không thể chuyển vai trò.');
@@ -205,7 +218,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(null);
       setCurrentOrg(null);
       setIsAuthenticated(false);
-      pushToast('info', 'Đã đăng xuất.');
+      pushToast('info', 'Đã đăng xuất / ログアウトしました');
     },
     [pushToast]
   );
@@ -230,7 +243,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(data.currentUser);
       setCurrentOrg(data.currentOrg);
       setIsAuthenticated(true);
-      pushToast('success', `Đăng nhập thành công: ${data.currentUser?.name}`);
+      pushToast('success', `Đăng nhập thành công / ログイン成功: ${data.currentUser?.name}`);
       triggerRefresh();
       return { ok: true };
     },
@@ -260,6 +273,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
         notifications,
         lang,
         setLang,
+        toggleLang,
         loadingAuth,
         refreshTick,
         triggerRefresh,

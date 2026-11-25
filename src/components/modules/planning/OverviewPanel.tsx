@@ -15,6 +15,7 @@ import {
 import { Card, StatCard } from '@/components/ui/Card';
 import { Badge, LotStatusBadge } from '@/components/ui/Badge';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { DailyOrder } from '@/types/order-plan';
 import { Lot } from '@/types/lot-epod';
 import { TempAlert, Trip } from '@/types/transport-temp';
@@ -29,7 +30,7 @@ const SIX_STEPS = [
 ];
 
 export function OverviewPanel() {
-  const { refreshTick, currentUser } = useCct();
+  const { refreshTick, currentUser, lang } = useCct();
   const [orders, setOrders] = useState<DailyOrder[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -91,10 +92,18 @@ export function OverviewPanel() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Trung tâm điều phối chuỗi lạnh (Control Tower)
+            {tx(
+              lang,
+              'Trung tâm điều phối chuỗi lạnh (Control Tower)',
+              'コールドチェーン統合管制センター (Control Tower)'
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Hành lang ĐBSCL → Cơ sở sơ chế → Kho Bến Lức → TP.HCM · Mục tiêu 17–20 tấn/ngày
+            {tx(
+              lang,
+              'Hành lang ĐBSCL → Cơ sở sơ chế → Kho Bến Lức → TP.HCM · Mục tiêu 17–20 tấn/ngày',
+              'メコンデルタ → 選果場 → ベンルック冷蔵倉庫 → ホーチミン · 目標 17–20トン/日'
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -102,13 +111,13 @@ export function OverviewPanel() {
             href="/control-tower/orders-plan"
             className="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold hover:bg-emerald-700"
           >
-            Lập kế hoạch ngày D
+            {tx(lang, 'Lập kế hoạch ngày D', 'D日供給計画作成')}
           </Link>
           <Link
             href="/control-tower/lots"
             className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50"
           >
-            Xem hồ sơ lô
+            {tx(lang, 'Xem hồ sơ lô', 'ロット詳細確認')}
           </Link>
         </div>
       </div>

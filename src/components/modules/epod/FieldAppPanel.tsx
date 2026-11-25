@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge, LotStatusBadge } from '@/components/ui/Badge';
 import { QrCodeModal } from '@/components/ui/QrCodeModal';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { HandoverStage, Lot } from '@/types/lot-epod';
 import { Organization } from '@/types/common';
 import { Product, TempGroup } from '@/types/catalog';
@@ -36,7 +37,7 @@ interface OfflineQueueItem {
 const OFFLINE_STORAGE_KEY = 'cct_field_offline_queue';
 
 export function FieldAppPanel() {
-  const { currentUser, currentOrg, demoUsers, switchUser, refreshTick, pushToast, triggerRefresh } =
+  const { currentUser, currentOrg, demoUsers, switchUser, refreshTick, pushToast, triggerRefresh, lang } =
     useCct();
 
   const [isOffline, setIsOffline] = useState(false);
@@ -391,7 +392,9 @@ export function FieldAppPanel() {
             )}
             <div>
               <div className="text-sm font-bold text-slate-900">
-                {isOffline ? 'CHẾ ĐỘ MẤT SÓNG (OFFLINE 24H)' : 'ĐANG TRỰC TUYẾN'}
+                {isOffline
+                  ? tx(lang, 'CHẾ ĐỘ MẤT SÓNG (OFFLINE 24H)', 'オフラインモード (24時間保持)')
+                  : tx(lang, 'ĐANG TRỰC TUYẾN', 'オンライン接続中')}
               </div>
               <div className="text-xs text-slate-600">
                 {currentOrg?.name} · {currentUser?.name}
@@ -405,7 +408,9 @@ export function FieldAppPanel() {
               isOffline ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
-            {isOffline ? 'Bật lại mạng (Tự đồng bộ)' : 'Giả lập mất sóng (FR-33)'}
+            {isOffline
+              ? tx(lang, 'Bật lại mạng (Tự đồng bộ)', 'オンライン復帰（自動同期）')
+              : tx(lang, 'Giả lập mất sóng (FR-33)', 'オフライン切替 (FR-33)')}
           </button>
         </div>
 

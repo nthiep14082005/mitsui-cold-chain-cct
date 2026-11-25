@@ -6,12 +6,13 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { KpiDashboardData, PartnerScoreRecord } from '@/types/claim-billing-kpi';
 import { Organization } from '@/types/common';
 import { TempGroup } from '@/types/catalog';
 
 export function KpiPanel() {
-  const { refreshTick, pushToast, triggerRefresh } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, lang } = useCct();
   const [month, setMonth] = useState('2026-11');
   const [customerOrgId, setCustomerOrgId] = useState('');
   const [partnerOrgId, setPartnerOrgId] = useState('');
@@ -66,17 +67,25 @@ export function KpiPanel() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Dashboard 8 KPI Thí Điểm & Chấm điểm Đối tác (M11)
+            {tx(
+              lang,
+              'Dashboard 8 KPI Thí Điểm & Chấm điểm Đối tác (M11)',
+              'パイロット8 KPI ダッシュボード・パートナー評価 (M11)'
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Tính động từ dữ liệu vận hành thực tế (Mục 9.1). Chỉ tiêu dưới ngưỡng được tô đỏ; đối tác &lt; 70 điểm 2 tháng liên tiếp gắn cờ Rà soát hợp đồng (BR-14).
+            {tx(
+              lang,
+              'Tính động từ dữ liệu vận hành thực tế (Mục 9.1). Chỉ tiêu dưới ngưỡng được tô đỏ; đối tác < 70 điểm 2 tháng liên tiếp gắn cờ Rà soát hợp đồng (BR-14).',
+              '実運用データから動的算出。基準未満は赤表示、2ヶ月連続70点未満のパートナーは契約見直し対象 (BR-14)。'
+            )}
           </p>
         </div>
         <button
           onClick={handleRecalcScores}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
         >
-          <RefreshCw className="w-3.5 h-3.5" /> Chấm điểm đối tác
+          <RefreshCw className="w-3.5 h-3.5" /> {tx(lang, 'Chấm điểm đối tác', 'パートナー再採点')}
         </button>
       </div>
 

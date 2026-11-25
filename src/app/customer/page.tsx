@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Badge, LotStatusBadge, OrderStatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -22,7 +23,7 @@ import { EpodRecord, Lot } from '@/types/lot-epod';
 import { Claim, KpiDashboardData, MonthlyStatement } from '@/types/claim-billing-kpi';
 
 export default function CustomerPortalPage() {
-  const { currentUser, currentOrg, refreshTick, pushToast, triggerRefresh, switchUser, demoUsers } = useCct();
+  const { currentUser, currentOrg, refreshTick, pushToast, triggerRefresh, switchUser, demoUsers, lang } = useCct();
 
   const [contract, setContract] = useState<FrameworkContract | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -214,20 +215,32 @@ export default function CustomerPortalPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Cổng Khách hàng B2B — {currentOrg?.name}
+              {tx(lang, 'Cổng Khách hàng B2B', 'B2B顧客ポータル')} — {currentOrg?.name}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Hợp đồng khung {contract?.code} · Đơn giá dịch vụ chuỗi lạnh:{' '}
-              <strong>{contract?.unitPriceVndPerKg.toLocaleString('vi-VN')} đ/kg</strong> · Giờ chốt đơn 14:00 D-1
+              {tx(lang, 'Hợp đồng khung', '基本契約')} {contract?.code} ·{' '}
+              {tx(lang, 'Đơn giá dịch vụ chuỗi lạnh:', 'コールドチェーン単価:')}{' '}
+              <strong>{contract?.unitPriceVndPerKg.toLocaleString('vi-VN')} đ/kg</strong> ·{' '}
+              {tx(lang, 'Giờ chốt đơn 14:00 D-1', '締切 14:00 D-1')}
             </p>
           </div>
-          <Badge tone="blue">Dữ liệu cô lập riêng tổ chức (NFR-07)</Badge>
+          <Badge tone="blue">
+            {tx(lang, 'Dữ liệu cô lập riêng tổ chức (NFR-07)', '組織別データ分離保護 (NFR-07)')}
+          </Badge>
         </div>
 
         {/* Take-or-Pay Progress (FR-08) */}
         <Card
-          title="Sản lượng lũy kế tháng 11/2026 so với Cam kết Take-or-Pay (FR-08)"
-          subtitle={`Cam kết tối thiểu: ${(committedKg / 1000).toLocaleString('vi-VN')} tấn/tháng · Đã giao đạt chuẩn BG5: ${(acceptedKg / 1000).toLocaleString('vi-VN')} tấn`}
+          title={tx(
+            lang,
+            'Sản lượng lũy kế tháng 11/2026 so với Cam kết Take-or-Pay (FR-08)',
+            '2026年11月 累計納品量 vs Take-or-Pay 最低保証量 (FR-08)'
+          )}
+          subtitle={tx(
+            lang,
+            `Cam kết tối thiểu: ${(committedKg / 1000).toLocaleString('vi-VN')} tấn/tháng · Đã giao đạt chuẩn BG5: ${(acceptedKg / 1000).toLocaleString('vi-VN')} tấn`,
+            `月間契約量: ${(committedKg / 1000).toLocaleString('vi-VN')} トン · BG5合格納品済: ${(acceptedKg / 1000).toLocaleString('vi-VN')} トン`
+          )}
         >
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">

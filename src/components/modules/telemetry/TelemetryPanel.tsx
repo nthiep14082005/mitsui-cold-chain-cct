@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 import { LoggerDevice, TempAlert, TempReading } from '@/types/transport-temp';
 import { Lot } from '@/types/lot-epod';
 
 export function TelemetryPanel() {
-  const { refreshTick, pushToast, triggerRefresh } = useCct();
+  const { refreshTick, pushToast, triggerRefresh, lang } = useCct();
   const [loggers, setLoggers] = useState<LoggerDevice[]>([]);
   const [readings, setReadings] = useState<TempReading[]>([]);
   const [alerts, setAlerts] = useState<Array<TempAlert & { needsReminderNow?: boolean }>>([]);
@@ -122,10 +123,14 @@ export function TelemetryPanel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Giám sát nhiệt độ & Cảnh báo Realtime (M7)
+          {tx(lang, 'Giám sát nhiệt độ & Cảnh báo Realtime (M7)', 'リアルタイム温度監視・アラート (M7)')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          BR-07: Cảnh báo khi ngoài dải &gt; 15 phút hoặc mất tín hiệu &gt; 30 phút. Cảnh báo không chặn luồng hàng (FR-30).
+          {tx(
+            lang,
+            'BR-07: Cảnh báo khi ngoài dải > 15 phút hoặc mất tín hiệu > 30 phút. Cảnh báo không chặn luồng hàng (FR-30).',
+            'BR-07: 許容温度逸脱 > 15分、またはLogger通信途絶 > 30分で即時アラート。物流フローは自動停止しません (FR-30)。'
+          )}
         </p>
       </div>
 
