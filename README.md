@@ -4,7 +4,7 @@
 
 **Mitsui Cold Chain Control Tower (CCT)** là hệ thống điều phối chuỗi lạnh rau củ quả tươi theo mô hình *asset-light* trên hành lang **ĐBSCL – Bến Lức – TP.HCM** (quy mô thí điểm 500–600 tấn/tháng). Hệ thống quản lý xuyên suốt **6 bước vận hành** và **5 điểm bàn giao điện tử ePOD (BG1–BG5)** gắn theo từng mã lô và dữ liệu nhiệt độ liên tục từ logger, giúp phân định trách nhiệm minh bạch, tính cước *Take-or-Pay*, theo dõi 8 KPI thí điểm và truy xuất nguồn gốc QR công khai.
 
-- **Link truy cập trực tuyến (Vercel Production):** `{{VERCEL_PRODUCTION_URL}}`
+- **Link truy cập trực tuyến (Vercel Production):** https://mitsui-cold-chain-cct.vercel.app
 - **Cơ sở dữ liệu:** Neon PostgreSQL Serverless (`cct_store`) tự động khởi tạo bảng và seed dữ liệu mẫu ngay lần chạy đầu tiên.
 
 ---
