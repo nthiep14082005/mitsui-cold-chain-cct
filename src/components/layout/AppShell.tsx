@@ -24,7 +24,14 @@ import {
   Truck,
   X,
 } from 'lucide-react';
-import { t, tx } from '@/lib/i18n';
+import {
+  displayOperationalText,
+  displayOrgName,
+  displayUserName,
+  formatDateTime,
+  t,
+  tx,
+} from '@/lib/i18n';
 import { useCct } from './CctContext';
 import { RoleSwitcher } from './RoleSwitcher';
 import { LangToggle } from './LangToggle';
@@ -51,6 +58,7 @@ export function AppShell({
     lang,
     notifications,
     markNotificationRead,
+    switchUser,
     logout,
   } = useCct();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -107,6 +115,11 @@ export function AppShell({
       await logout('field');
     }
   };
+
+  const showSysAdminOpsBanner =
+    channel === 'control-tower' &&
+    pathname !== '/control-tower/admin' &&
+    currentUser?.role === 'QUAN_TRI_HE_THONG';
 
   return (
     <div className="min-h-screen flex bg-slate-50">
@@ -202,8 +215,12 @@ export function AppShell({
             <div className="text-[11px] text-slate-400 font-medium">
               {tx(lang, 'Tổ chức hiện tại', '現在の組織')}
             </div>
-            <div className="text-xs font-semibold text-slate-800 truncate">{currentOrg.name}</div>
-            <div className="text-[11px] text-slate-500">{currentUser?.name}</div>
+            <div className="text-xs font-semibold text-slate-800 truncate">
+              {displayOrgName(currentOrg.name, lang)}
+            </div>
+            <div className="text-[11px] text-slate-500">
+              {currentUser ? displayUserName(currentUser.name, lang) : ''}
+            </div>
           </div>
         )}
       </aside>
@@ -297,7 +314,7 @@ export function AppShell({
                 Asset-Light
               </span>
               <span className="truncate font-medium text-slate-700">
-                {currentOrg?.name ?? 'Mitsui CCT'}
+                {currentOrg ? displayOrgName(currentOrg.name, lang) : 'Mitsui CCT'}
               </span>
             </div>
           </div>
@@ -354,7 +371,7 @@ export function AppShell({
               <button
                 onClick={() => setNotifOpen((v) => !v)}
                 className="relative p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
-                aria-label="Notifications"
+                aria-label={t('notifications', lang)}
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
@@ -394,7 +411,9 @@ export function AppShell({
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="text-xs font-semibold text-slate-900">{n.title}</span>
+                              <span className="text-xs font-semibold text-slate-900">
+                                {displayOperationalText(n.title, lang)}
+                              </span>
                               <div className="flex gap-1">
                                 {n.channel.map((ch) => (
                                   <span
@@ -406,11 +425,11 @@ export function AppShell({
                                 ))}
                               </div>
                             </div>
-                            <p className="text-xs text-slate-600 leading-relaxed">{n.message}</p>
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              {displayOperationalText(n.message, lang)}
+                            </p>
                             <div className="text-[10px] text-slate-400 mt-1">
-                              {new Date(n.createdAt).toLocaleString('vi-VN', {
-                                timeZone: 'Asia/Ho_Chi_Minh',
-                              })}
+                              {formatDateTime(n.createdAt, lang)}
                             </div>
                           </div>
                         );
@@ -424,6 +443,33 @@ export function AppShell({
         </header>
 
         <main className="flex-1 p-3 sm:p-6 pb-24 lg:pb-8 max-w-7xl w-full mx-auto">
+          {showSysAdminOpsBanner && (
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+              <span>
+                {tx(
+                  lang,
+                  'Tài khoản Quản trị hệ thống chỉ chỉnh sửa Danh mục & Tham số (NFR-07). Để thao tác điều phối hoặc QC, hãy chuyển nhanh vai trò:',
+                  'システム管理者はマスタ・パラメータ設定専用ロールです (NFR-07)。運用・QC操作を行うには担当ロールへ切替えてください：'
+                )}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => switchUser('USER-MITSUI-COORD')}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
+                >
+                  {tx(lang, 'Điều phối viên', 'コーディネーター')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchUser('USER-MITSUI-QC')}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800"
+                >
+                  {tx(lang, 'Quản lý / QC', 'マネージャー / QC')}
+                </button>
+              </div>
+            </div>
+          )}
           {children}
         </main>
       </div>

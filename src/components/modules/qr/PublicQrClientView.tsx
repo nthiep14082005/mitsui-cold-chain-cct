@@ -17,7 +17,15 @@ import {
 import { PublicQrPayload } from '@/domain/kpi-scoring';
 import { useCct } from '@/components/layout/CctContext';
 import { LangToggle } from '@/components/layout/LangToggle';
-import { t, tx } from '@/lib/i18n';
+import {
+  displayOrgName,
+  displayPackagingSpec,
+  displayPlace,
+  displayProductName,
+  formatDateTime,
+  t,
+  tx,
+} from '@/lib/i18n';
 
 const MILESTONE_JA: Record<string, string> = {
   BG1: 'メコンデルタでの受入・選果工程',
@@ -114,8 +122,12 @@ export function PublicQrClientView({ info }: { info: PublicQrPayload }) {
         {/* Product & Origin Info */}
         <div className="p-5 space-y-5">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{info.productName}</h1>
-            <p className="text-xs text-slate-500 mt-0.5">{info.packagingSpec}</p>
+            <h1 className="text-xl font-bold text-slate-900">
+              {displayProductName(info.productName, lang)}
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {displayPackagingSpec(info.packagingSpec, lang)}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-2.5 text-sm bg-slate-50 rounded-2xl p-4 border border-slate-200">
@@ -125,7 +137,9 @@ export function PublicQrClientView({ info }: { info: PublicQrPayload }) {
                 <div className="text-[11px] text-slate-400">
                   {tx(lang, 'Vùng trồng', '生産地')}
                 </div>
-                <div className="font-semibold text-slate-800">{info.growingArea}</div>
+                <div className="font-semibold text-slate-800">
+                  {displayPlace(info.growingArea, lang)}
+                </div>
               </div>
             </div>
 
@@ -136,7 +150,9 @@ export function PublicQrClientView({ info }: { info: PublicQrPayload }) {
                   <div className="text-[11px] text-slate-400">
                     {tx(lang, 'Nhà cung cấp / HTX', 'サプライヤー / 農協(HTX)')}
                   </div>
-                  <div className="font-semibold text-slate-800">{info.htxName}</div>
+                  <div className="font-semibold text-slate-800">
+                    {displayOrgName(info.htxName, lang)}
+                  </div>
                 </div>
               </div>
             )}
@@ -202,9 +218,7 @@ export function PublicQrClientView({ info }: { info: PublicQrPayload }) {
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
                       {m.completedAt
-                        ? new Date(m.completedAt).toLocaleString('vi-VN', {
-                            timeZone: 'Asia/Ho_Chi_Minh',
-                          })
+                        ? formatDateTime(m.completedAt, lang)
                         : tx(lang, 'Đang chờ cập nhật', '更新待ち')}
                     </div>
                   </div>

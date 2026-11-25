@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { TwoHorizonsBackground } from '@/components/auth/two-horizons/TwoHorizonsBackground';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import { translateApiMessage, tx } from '@/lib/i18n';
 
 const QUICK_CUSTOMER_ACCOUNTS = [
   { label: 'Bách Hóa Xanh', email: 'bao.pham@bachhoaxanh.com', password: 'Customer@2026' },
@@ -75,7 +75,12 @@ export default function CustomerLoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || tx(lang, 'Đăng ký tài khoản thất bại.', 'アカウント登録に失敗しました。'));
+        setError(
+          translateApiMessage(
+            data.error || tx(lang, 'Đăng ký tài khoản thất bại.', 'アカウント登録に失敗しました。'),
+            lang
+          )
+        );
         return;
       }
       await reloadAuth();
@@ -245,7 +250,7 @@ export default function CustomerLoginPage() {
                   type="text"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
-                  placeholder="Nguyễn Minh An"
+                  placeholder={tx(lang, 'Nguyễn Minh An', '山田 太郎')}
                   className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
                   required
                 />
@@ -261,7 +266,7 @@ export default function CustomerLoginPage() {
                   type="text"
                   value={regCompany}
                   onChange={(e) => setRegCompany(e.target.value)}
-                  placeholder="Chuỗi Thực Phẩm Xanh"
+                  placeholder={tx(lang, 'Chuỗi Thực Phẩm Xanh', 'グリーンフード株式会社')}
                   className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
                   required
                 />

@@ -1,8 +1,5 @@
-export type Lang = 'vi' | 'ja';
-
-export function tx(lang: Lang, vi: string, ja: string): string {
-  return lang === 'ja' ? ja : vi;
-}
+export * from './i18n-data';
+import type { Lang } from './i18n-data';
 
 export const DICTIONARY: Record<string, { vi: string; ja: string }> = {
   appTitle: {

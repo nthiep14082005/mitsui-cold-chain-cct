@@ -6,7 +6,12 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import {
+  displayOrgName,
+  displayTempGroupName,
+  localizeKpiMetric,
+  tx,
+} from '@/lib/i18n';
 import { KpiDashboardData, PartnerScoreRecord } from '@/types/claim-billing-kpi';
 import { Organization } from '@/types/common';
 import { TempGroup } from '@/types/catalog';
@@ -49,7 +54,7 @@ export function KpiPanel() {
     loadData();
   }, [loadData, refreshTick]);
 
-  const orgName = (id: string) => orgs.find((o) => o.id === id)?.name ?? id;
+  const orgName = (id: string) => displayOrgName(orgs.find((o) => o.id === id)?.name ?? id, lang);
 
   const handleRecalcScores = async () => {
     const res = await fetch('/api/kpi', {
@@ -57,8 +62,17 @@ export function KpiPanel() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ month }),
     });
-    if (!res.ok) return pushToast('error', 'Không có quyền chấm điểm đối tác');
-    pushToast('success', `Đã chấm điểm lại đối tác tháng ${month} (BR-14)`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return pushToast(
+        'error',
+        err.error || tx(lang, 'Không có quyền chấm điểm đối tác', 'パートナー再採点の権限がありません')
+      );
+    }
+    pushToast(
+      'success',
+      tx(lang, `Đã chấm điểm lại đối tác tháng ${month} (BR-14)`, `${month} のパートナー評価を再採点しました (BR-14)`)
+    );
     triggerRefresh();
   };
 
@@ -93,7 +107,9 @@ export function KpiPanel() {
       <Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Tháng đánh giá</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              {tx(lang, 'Tháng đánh giá', '評価対象月')}
+            </label>
             <input
               type="month"
               value={month}
@@ -102,50 +118,56 @@ export function KpiPanel() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Lọc theo Khách hàng</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              {tx(lang, 'Lọc theo Khách hàng', '顧客で絞り込み')}
+            </label>
             <select
               value={customerOrgId}
               onChange={(e) => setCustomerOrgId(e.target.value)}
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             >
-              <option value="">Tất cả khách hàng</option>
+              <option value="">{tx(lang, 'Tất cả khách hàng', 'すべての顧客')}</option>
               {orgs
                 .filter((o) => o.type === 'KHACH_HANG')
                 .map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.name}
+                    {displayOrgName(o.name, lang)}
                   </option>
                 ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Lọc theo Đối tác</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              {tx(lang, 'Lọc theo Đối tác', 'パートナーで絞り込み')}
+            </label>
             <select
               value={partnerOrgId}
               onChange={(e) => setPartnerOrgId(e.target.value)}
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             >
-              <option value="">Tất cả đối tác</option>
+              <option value="">{tx(lang, 'Tất cả đối tác', 'すべてのパートナー')}</option>
               {orgs
                 .filter((o) => ['CO_SO_SO_CHE', 'KHO_LANH', 'NHA_VAN_TAI'].includes(o.type))
                 .map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.name}
+                    {displayOrgName(o.name, lang)}
                   </option>
                 ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Lọc theo Nhóm nhiệt</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              {tx(lang, 'Lọc theo Nhóm nhiệt', '温度帯で絞り込み')}
+            </label>
             <select
               value={tempGroupId}
               onChange={(e) => setTempGroupId(e.target.value)}
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             >
-              <option value="">Tất cả nhóm nhiệt</option>
+              <option value="">{tx(lang, 'Tất cả nhóm nhiệt', 'すべての温度帯')}</option>
               {tempGroups.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name}
+                  {displayTempGroupName(t.name, lang)}
                 </option>
               ))}
             </select>
@@ -156,44 +178,53 @@ export function KpiPanel() {
       {/* 8 Pilot KPIs Grid */}
       {kpiData && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {kpiData.metrics.map((m) => (
-            <div
-              key={m.key}
-              className={`rounded-2xl border p-4 shadow-sm transition ${
-                m.passed
-                  ? 'border-emerald-200 bg-white'
-                  : 'border-rose-300 bg-rose-50/70'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {m.group}
-                </span>
-                <Badge tone={m.passed ? 'emerald' : 'rose'}>
-                  {m.passed ? 'Đạt ngưỡng' : 'Dưới ngưỡng'}
-                </Badge>
-              </div>
-              <div className="text-sm font-bold text-slate-900 mt-1.5">{m.label}</div>
+          {kpiData.metrics.map((rawMetric) => {
+            const m = localizeKpiMetric(rawMetric, lang);
+            return (
               <div
-                className={`text-2xl font-bold mt-2 ${
-                  m.passed ? 'text-emerald-700' : 'text-rose-700'
+                key={m.key}
+                className={`rounded-2xl border p-4 shadow-sm transition ${
+                  m.passed ? 'border-emerald-200 bg-white' : 'border-rose-300 bg-rose-50/70'
                 }`}
               >
-                {m.actualValue} {m.unit}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    {m.group}
+                  </span>
+                  <Badge tone={m.passed ? 'emerald' : 'rose'}>
+                    {m.passed ? tx(lang, 'Đạt ngưỡng', '基準達成') : tx(lang, 'Dưới ngưỡng', '基準未達')}
+                  </Badge>
+                </div>
+                <div className="text-sm font-bold text-slate-900 mt-1.5">{m.label}</div>
+                <div
+                  className={`text-2xl font-bold mt-2 ${
+                    m.passed ? 'text-emerald-700' : 'text-rose-700'
+                  }`}
+                >
+                  {m.actualValue} {m.unit}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">
+                  {tx(lang, 'Mục tiêu:', '目標:')} <strong>{m.targetLabel}</strong>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">{m.formulaNote}</div>
               </div>
-              <div className="text-xs text-slate-600 mt-1">
-                Mục tiêu: <strong>{m.targetLabel}</strong>
-              </div>
-              <div className="text-[11px] text-slate-400 mt-1">{m.formulaNote}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Partner Monthly Scoring Table (BR-14) */}
       <Card
-        title="Bảng chấm điểm đối tác hằng tháng — Thang 100 (FR-46, BR-14)"
-        subtitle="Trọng số: Đúng hạn 30% + Giữ dải nhiệt 30% + Dung sai khối lượng 20% + Khiếu nại 20%"
+        title={tx(
+          lang,
+          'Bảng chấm điểm đối tác hằng tháng — Thang 100 (FR-46, BR-14)',
+          '月次パートナー評価スコア表 — 100点満点 (FR-46, BR-14)'
+        )}
+        subtitle={tx(
+          lang,
+          'Trọng số: Đúng hạn 30% + Giữ dải nhiệt 30% + Dung sai khối lượng 20% + Khiếu nại 20%',
+          '配点ウェイト: 定時順守 30% + 温度帯維持 30% + 重量許容差 20% + 無クレーム率 20%'
+        )}
       >
         <ResponsiveTable
           data={scores}
@@ -201,7 +232,7 @@ export function KpiPanel() {
           columns={[
             {
               key: 'month',
-              header: 'Kỳ / Đối tác',
+              header: tx(lang, 'Kỳ / Đối tác', '対象月 / パートナー'),
               render: (s) => (
                 <div>
                   <div className="font-mono text-xs font-bold text-slate-500">{s.month}</div>
@@ -211,27 +242,27 @@ export function KpiPanel() {
             },
             {
               key: 'otd',
-              header: 'Đúng hạn (30%)',
+              header: tx(lang, 'Đúng hạn (30%)', '定時性 (30%)'),
               render: (s) => <span className="text-xs">{s.onTimeRatePct}%</span>,
             },
             {
               key: 'temp',
-              header: 'Dải nhiệt (30%)',
+              header: tx(lang, 'Dải nhiệt (30%)', '温度順守 (30%)'),
               render: (s) => <span className="text-xs">{s.tempCompliancePct}%</span>,
             },
             {
               key: 'wt',
-              header: 'Khối lượng (20%)',
+              header: tx(lang, 'Khối lượng (20%)', '重量精度 (20%)'),
               render: (s) => <span className="text-xs">{s.weightCompliancePct}%</span>,
             },
             {
               key: 'clm',
-              header: 'Không lỗi KN (20%)',
+              header: tx(lang, 'Không lỗi KN (20%)', '無クレーム (20%)'),
               render: (s) => <span className="text-xs">{s.claimFreeScorePct}%</span>,
             },
             {
               key: 'total',
-              header: 'Tổng điểm / Cảnh báo',
+              header: tx(lang, 'Tổng điểm / Cảnh báo', '総合点 / 契約警告'),
               render: (s) => (
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -243,7 +274,12 @@ export function KpiPanel() {
                   </span>
                   {s.contractReviewFlag && (
                     <Badge tone="rose">
-                      <AlertTriangle className="w-3 h-3" /> Diện rà soát hợp đồng (&lt;70đ × 2 tháng)
+                      <AlertTriangle className="w-3 h-3" />{' '}
+                      {tx(
+                        lang,
+                        'Diện rà soát hợp đồng (<70đ × 2 tháng)',
+                        '契約見直し対象 (<70点×2ヶ月連続)'
+                      )}
                     </Badge>
                   )}
                 </div>

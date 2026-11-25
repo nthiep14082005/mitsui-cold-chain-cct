@@ -3,6 +3,17 @@
 import React from 'react';
 import clsx from 'clsx';
 import { useCct } from '@/components/layout/CctContext';
+import {
+  ALLOC_CONFIRM_I18N,
+  CLAIM_STATUS_I18N,
+  LOT_STATUS_I18N,
+  LocalizedBadgeMeta,
+  ORDER_STATUS_I18N,
+  ORG_TYPE_I18N,
+  STATEMENT_STATUS_I18N,
+  TRIP_STATUS_I18N,
+  TRIP_TYPE_I18N,
+} from '@/lib/i18n';
 
 export type BadgeTone = 'slate' | 'emerald' | 'blue' | 'amber' | 'rose' | 'purple';
 
@@ -37,34 +48,46 @@ export function Badge({
   );
 }
 
-export const LOT_STATUS_META: Record<string, { label: string; ja: string; tone: BadgeTone }> = {
-  DA_TAO: { label: 'Đã tạo', ja: '作成済', tone: 'slate' },
-  DANG_LAM_LANH: { label: 'Đang làm lạnh', ja: '予冷中', tone: 'blue' },
-  DANG_TRUNG_CHUYEN: { label: 'Đang trung chuyển', ja: '中継輸送中', tone: 'purple' },
-  TRONG_KHO: { label: 'Trong kho', ja: '倉庫保管中', tone: 'blue' },
-  DANG_GIAO: { label: 'Đang giao', ja: '配送中', tone: 'amber' },
-  DA_GIAO: { label: 'Đã giao', ja: '納品完了', tone: 'emerald' },
-  CO_KHIEU_NAI: { label: 'Có khiếu nại', ja: 'クレーム中', tone: 'rose' },
-  DONG: { label: 'Đóng', ja: 'クローズ', tone: 'slate' },
-};
-
-export const ORDER_STATUS_META: Record<string, { label: string; ja: string; tone: BadgeTone }> = {
-  DA_NHAN: { label: 'Đã nhận', ja: '受付済', tone: 'blue' },
-  PHAT_SINH: { label: 'Phát sinh (>14:00)', ja: '締切後追加 (>14:00)', tone: 'amber' },
-  DA_XAC_NHAN: { label: 'Đã xác nhận', ja: '確定済', tone: 'emerald' },
-  TU_CHOI: { label: 'Từ chối', ja: '却下', tone: 'rose' },
-  DANG_THUC_HIEN: { label: 'Đang thực hiện', ja: '手配中', tone: 'purple' },
-  HOAN_TAT: { label: 'Hoàn tất', ja: '完了', tone: 'emerald' },
-};
+function MappedBadge({
+  map,
+  value,
+}: {
+  map: Record<string, LocalizedBadgeMeta>;
+  value: string;
+}) {
+  const { lang } = useCct();
+  const m = map[value] ?? { vi: value, ja: value, tone: 'slate' as BadgeTone };
+  return <Badge tone={m.tone}>{lang === 'ja' ? m.ja : m.vi}</Badge>;
+}
 
 export function LotStatusBadge({ status }: { status: string }) {
-  const { lang } = useCct();
-  const m = LOT_STATUS_META[status] ?? { label: status, ja: status, tone: 'slate' as BadgeTone };
-  return <Badge tone={m.tone}>{lang === 'ja' ? m.ja : m.label}</Badge>;
+  return <MappedBadge map={LOT_STATUS_I18N} value={status} />;
 }
 
 export function OrderStatusBadge({ status }: { status: string }) {
-  const { lang } = useCct();
-  const m = ORDER_STATUS_META[status] ?? { label: status, ja: status, tone: 'slate' as BadgeTone };
-  return <Badge tone={m.tone}>{lang === 'ja' ? m.ja : m.label}</Badge>;
+  return <MappedBadge map={ORDER_STATUS_I18N} value={status} />;
+}
+
+export function TripTypeBadge({ tripType }: { tripType: string }) {
+  return <MappedBadge map={TRIP_TYPE_I18N} value={tripType} />;
+}
+
+export function TripStatusBadge({ status }: { status: string }) {
+  return <MappedBadge map={TRIP_STATUS_I18N} value={status} />;
+}
+
+export function ClaimStatusBadge({ status }: { status: string }) {
+  return <MappedBadge map={CLAIM_STATUS_I18N} value={status} />;
+}
+
+export function StatementStatusBadge({ status }: { status: string }) {
+  return <MappedBadge map={STATEMENT_STATUS_I18N} value={status} />;
+}
+
+export function OrgTypeBadge({ orgType }: { orgType: string }) {
+  return <MappedBadge map={ORG_TYPE_I18N} value={orgType} />;
+}
+
+export function AllocConfirmBadge({ status }: { status: string }) {
+  return <MappedBadge map={ALLOC_CONFIRM_I18N} value={status} />;
 }

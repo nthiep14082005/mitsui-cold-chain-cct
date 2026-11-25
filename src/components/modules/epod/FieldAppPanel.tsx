@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
-  ClipboardCheck,
   MapPin,
   PackagePlus,
   QrCode,
@@ -15,10 +14,21 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Badge, LotStatusBadge } from '@/components/ui/Badge';
+import { AllocConfirmBadge, Badge, TripStatusBadge } from '@/components/ui/Badge';
 import { QrCodeModal } from '@/components/ui/QrCodeModal';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import {
+  displayOperationalText,
+  displayOrgName,
+  displayPlace,
+  displayProductName,
+  displayTempGroupName,
+  displayUserName,
+  formatNum,
+  formatTime,
+  LOT_STATUS_I18N,
+  tx,
+} from '@/lib/i18n';
 import { HandoverStage, Lot } from '@/types/lot-epod';
 import { Organization } from '@/types/common';
 import { Product, TempGroup } from '@/types/catalog';
@@ -119,7 +129,7 @@ export function FieldAppPanel() {
         });
         if (!res.ok) {
           const err = await res.json();
-          pushToast('error', err.error || 'Lỗi đồng bộ ePOD ngoại tuyến');
+          pushToast('error', err.error || tx(lang, 'Lỗi đồng bộ ePOD ngoại tuyến', 'オフラインePOD同期エラー'));
           setSyncing(false);
           return;
         }
@@ -141,12 +151,19 @@ export function FieldAppPanel() {
 
       const syncedCount = offlineQueue.length;
       saveQueue([]);
-      pushToast('success', `Đã tự động đồng bộ ${syncedCount} bản ghi ngoại tuyến lên máy chủ!`);
+      pushToast(
+        'success',
+        tx(
+          lang,
+          `Đã tự động đồng bộ ${syncedCount} bản ghi ngoại tuyến lên máy chủ!`,
+          `オフライン記録 ${syncedCount} 件をサーバーへ自動同期しました！`
+        )
+      );
       triggerRefresh();
     } finally {
       setSyncing(false);
     }
-  }, [offlineQueue, syncing, pushToast, triggerRefresh]);
+  }, [offlineQueue, syncing, pushToast, triggerRefresh, lang]);
 
   // Auto-sync when toggling back online
   useEffect(() => {
@@ -194,8 +211,9 @@ export function FieldAppPanel() {
   const fieldRoles = demoUsers.filter((u) =>
     ['NHA_CUNG_CAP', 'NHAN_VIEN_SO_CHE', 'NHAN_VIEN_KHO', 'TAI_XE'].includes(u.role)
   );
-  const prodName = (id: string) => products.find((p) => p.id === id)?.name ?? id;
-  const tgName = (id: string) => tempGroups.find((t) => t.id === id)?.name ?? id;
+  const prodName = (id: string) => displayProductName(products.find((p) => p.id === id)?.name ?? id, lang);
+  const tgName = (id: string) => displayTempGroupName(tempGroups.find((t) => t.id === id)?.name ?? id, lang);
+  const lotStatusLabel = (status: string) => LOT_STATUS_I18N[status]?.[lang] ?? status;
   const selectedLot = lots.find((l) => l.id === selectedLotId) ?? lots[0];
 
   // Auto-suggest next BG stage when lot changes
@@ -225,7 +243,10 @@ export function FieldAppPanel() {
       varianceReason: varianceReason.trim() || undefined,
       acceptedKg: stage === 'BG5' ? Number(acceptedKg) : undefined,
       rejectedKg: stage === 'BG5' ? Number(rejectedKg) : undefined,
-      qcRejectionReason: stage === 'BG5' && Number(rejectedKg) > 0 ? varianceReason || 'Hàng không đạt' : undefined,
+      qcRejectionReason:
+        stage === 'BG5' && Number(rejectedKg) > 0
+          ? varianceReason || tx(lang, 'Hàng không đạt', '品質不合格')
+          : undefined,
       confirmBothParties: true,
     };
 
@@ -241,7 +262,14 @@ export function FieldAppPanel() {
         },
       ];
       saveQueue(next);
-      pushToast('warning', `Đang mất sóng: Đã lưu ${stage} vào hàng đợi thiết bị (sẽ tự đồng bộ khi có mạng).`);
+      pushToast(
+        'warning',
+        tx(
+          lang,
+          `Đang mất sóng: Đã lưu ${stage} vào hàng đợi thiết bị (sẽ tự đồng bộ khi có mạng).`,
+          `オフライン中: ${stage} を端末キューに保存しました（復帰後に自動同期されます）。`
+        )
+      );
       return;
     }
 
@@ -251,11 +279,18 @@ export function FieldAppPanel() {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi ghi biên bản');
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi ghi biên bản', '記録エラー'));
     if (data.warnings?.length) {
       pushToast('warning', data.warnings[0]);
     } else {
-      pushToast('success', `Đã ký bàn giao ${stage} lô ${selectedLot.lotCode} thành công!`);
+      pushToast(
+        'success',
+        tx(
+          lang,
+          `Đã ký bàn giao ${stage} lô ${selectedLot.lotCode} thành công!`,
+          `ロット ${selectedLot.lotCode} の引渡 ${stage} を署名完了しました！`
+        )
+      );
     }
     setVarianceReason('');
     triggerRefresh();
@@ -277,8 +312,15 @@ export function FieldAppPanel() {
       }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi tạo lô');
-    pushToast('success', `Đã tạo lô ${data.lot.lotCode} & sinh mã QR!`);
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi tạo lô', 'ロット作成エラー'));
+    pushToast(
+      'success',
+      tx(
+        lang,
+        `Đã tạo lô ${data.lot.lotCode} & sinh mã QR!`,
+        `ロット ${data.lot.lotCode} を作成し QRコードを発行しました！`
+      )
+    );
     setQrLot(data.lot);
     triggerRefresh();
   };
@@ -289,8 +331,13 @@ export function FieldAppPanel() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     });
-    if (!res.ok) return pushToast('error', 'Lỗi cập nhật phòng mát');
-    pushToast('success', action === 'ENTER_COOLING' ? 'Đã đưa lô vào phòng mát (FR-17)' : 'Đã xuất phòng mát');
+    if (!res.ok) return pushToast('error', tx(lang, 'Lỗi cập nhật phòng mát', '予冷室更新エラー'));
+    pushToast(
+      'success',
+      action === 'ENTER_COOLING'
+        ? tx(lang, 'Đã đưa lô vào phòng mát (FR-17)', 'ロットを予冷室へ入庫しました (FR-17)')
+        : tx(lang, 'Đã xuất phòng mát', '予冷室から出庫しました')
+    );
     triggerRefresh();
   };
 
@@ -308,10 +355,17 @@ export function FieldAppPanel() {
           kind: 'TRIP_CHECKIN',
           payload: { tripId, stopOrder, gpsLat: 10.6352, gpsLng: 106.4847 },
           recordedAt: nowIso,
-          label: `GPS Check-in chuyến ${tripId} (Điểm #${stopOrder})`,
+          label: `GPS Check-in ${tripId} (#${stopOrder})`,
         },
       ]);
-      pushToast('warning', 'Đang mất sóng: Đã lưu Check-in GPS vào hàng đợi ngoại tuyến.');
+      pushToast(
+        'warning',
+        tx(
+          lang,
+          'Đang mất sóng: Đã lưu Check-in GPS vào hàng đợi ngoại tuyến.',
+          'オフライン中: GPSチェックインを端末キューに保存しました。'
+        )
+      );
       return;
     }
 
@@ -326,8 +380,11 @@ export function FieldAppPanel() {
       }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi cập nhật chuyến');
-    pushToast('success', `Đã cập nhật chuyến ${data.trip.code}`);
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi cập nhật chuyến', '配車便更新エラー'));
+    pushToast(
+      'success',
+      tx(lang, `Đã cập nhật chuyến ${data.trip.code}`, `配車便 ${data.trip.code} を更新しました`)
+    );
     triggerRefresh();
   };
 
@@ -346,8 +403,15 @@ export function FieldAppPanel() {
         },
       }),
     });
-    if (!res.ok) return pushToast('error', 'Lỗi xác nhận HTX');
-    pushToast('success', 'HTX đã xác nhận sản lượng & khai báo nguồn gốc (FR-11, FR-13)');
+    if (!res.ok) return pushToast('error', tx(lang, 'Lỗi xác nhận HTX', 'HTX確認エラー'));
+    pushToast(
+      'success',
+      tx(
+        lang,
+        'HTX đã xác nhận sản lượng & khai báo nguồn gốc (FR-11, FR-13)',
+        '農協 (HTX) の供給量確認・産地申告を送信しました (FR-11, FR-13)'
+      )
+    );
     triggerRefresh();
   };
 
@@ -359,8 +423,15 @@ export function FieldAppPanel() {
       body: JSON.stringify({ action: 'PARTNER_EXPLAIN', explanationContent: explainText }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi gửi giải trình');
-    pushToast('success', 'Đã gửi giải trình lên Quản lý QC Mitsui (FR-39)');
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi gửi giải trình', '弁明送信エラー'));
+    pushToast(
+      'success',
+      tx(
+        lang,
+        'Đã gửi giải trình lên Quản lý QC Mitsui (FR-39)',
+        'Mitsui QCマネージャーへ弁明書を提出しました (FR-39)'
+      )
+    );
     setExplainText('');
     triggerRefresh();
   };
@@ -373,14 +444,25 @@ export function FieldAppPanel() {
     selectedChamberObj &&
     selectedChamberObj.tempGroupId !== selectedLot.tempGroupId;
 
+  const roleShortLabel = (role: string) => {
+    switch (role) {
+      case 'NHA_CUNG_CAP':
+        return tx(lang, 'HTX', '農協(HTX)');
+      case 'NHAN_VIEN_SO_CHE':
+        return tx(lang, 'Sơ chế', '選果・予冷');
+      case 'NHAN_VIEN_KHO':
+        return tx(lang, 'Kho lạnh', '冷蔵倉庫');
+      default:
+        return tx(lang, 'Tài xế', 'ドライバー');
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* Top Offline Mode Banner + Role Quick Switcher */}
       <div
         className={`rounded-2xl border-2 p-4 shadow-sm flex flex-col gap-3 ${
-          isOffline
-            ? 'border-rose-400 bg-rose-50'
-            : 'border-emerald-300 bg-emerald-50/70'
+          isOffline ? 'border-rose-400 bg-rose-50' : 'border-emerald-300 bg-emerald-50/70'
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -397,7 +479,8 @@ export function FieldAppPanel() {
                   : tx(lang, 'ĐANG TRỰC TUYẾN', 'オンライン接続中')}
               </div>
               <div className="text-xs text-slate-600">
-                {currentOrg?.name} · {currentUser?.name}
+                {currentOrg ? displayOrgName(currentOrg.name, lang) : ''} ·{' '}
+                {currentUser ? displayUserName(currentUser.name, lang) : ''}
               </div>
             </div>
           </div>
@@ -417,19 +500,25 @@ export function FieldAppPanel() {
         {offlineQueue.length > 0 && (
           <div className="bg-white rounded-xl border border-amber-300 p-3 space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold text-amber-800">
-              <span>Hàng đợi ngoại tuyến: {offlineQueue.length} bản ghi</span>
+              <span>
+                {tx(
+                  lang,
+                  `Hàng đợi ngoại tuyến: ${offlineQueue.length} bản ghi`,
+                  `オフライン待機キュー: ${offlineQueue.length} 件`
+                )}
+              </span>
               {!isOffline && (
                 <button
                   onClick={flushOfflineQueue}
                   className="inline-flex items-center gap-1 text-emerald-700 underline"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" /> Đồng bộ ngay
+                  <RefreshCw className="w-3.5 h-3.5" /> {tx(lang, 'Đồng bộ ngay', '今すぐ同期')}
                 </button>
               )}
             </div>
             {offlineQueue.map((q) => (
               <div key={q.idempotencyKey} className="text-xs text-slate-600">
-                • {q.label} (ghi lúc {new Date(q.recordedAt).toLocaleTimeString('vi-VN')})
+                • {q.label} ({tx(lang, 'ghi lúc', '記録時刻')} {formatTime(q.recordedAt, lang)})
               </div>
             ))}
           </div>
@@ -447,14 +536,7 @@ export function FieldAppPanel() {
                   : 'bg-white text-slate-700 border-slate-200'
               }`}
             >
-              {u.role === 'NHA_CUNG_CAP'
-                ? 'HTX'
-                : u.role === 'NHAN_VIEN_SO_CHE'
-                  ? 'Sơ chế'
-                  : u.role === 'NHAN_VIEN_KHO'
-                    ? 'Kho lạnh'
-                    : 'Tài xế'}{' '}
-              ({u.orgName.split(' ')[0]})
+              {roleShortLabel(u.role)} ({displayOrgName(u.orgName, lang).split(' ')[0]})
             </button>
           ))}
         </div>
@@ -462,12 +544,18 @@ export function FieldAppPanel() {
 
       {/* 1. Handover ePOD BG1-BG5 (<=5 steps, big touch targets NFR-10) */}
       <Card
-        title="Bàn giao điện tử ePOD (Tối đa 5 bước · NFR-10)"
-        subtitle="Chọn lô → Chọn điểm BG1–BG5 → Nhập kg & nhiệt độ → Xác nhận"
+        title={tx(lang, 'Bàn giao điện tử ePOD (Tối đa 5 bước · NFR-10)', '電子引渡署名 ePOD（最大5ステップ · NFR-10）')}
+        subtitle={tx(
+          lang,
+          'Chọn lô → Chọn điểm BG1–BG5 → Nhập kg & nhiệt độ → Xác nhận',
+          'ロット選択 → 引渡ポイント BG1–BG5 → 重量・温度入力 → 確定'
+        )}
       >
         <form onSubmit={handleSubmitEpod} className="space-y-3.5">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">1. Chọn / Quét lô hàng</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              {tx(lang, '1. Chọn / Quét lô hàng', '1. ロット選択 / QRスキャン')}
+            </label>
             <select
               value={selectedLot?.id ?? ''}
               onChange={(e) => setSelectedLotId(e.target.value)}
@@ -475,14 +563,17 @@ export function FieldAppPanel() {
             >
               {lots.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.lotCode} · {prodName(l.productId)} · {l.currentKg} kg ({l.status})
+                  {l.lotCode} · {prodName(l.productId)} · {formatNum(l.currentKg, lang)} kg (
+                  {lotStatusLabel(l.status)})
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">2. Điểm bàn giao (BG1–BG5)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              {tx(lang, '2. Điểm bàn giao (BG1–BG5)', '2. 引渡ポイント (BG1–BG5)')}
+            </label>
             <div className="grid grid-cols-5 gap-1.5">
               {(['BG1', 'BG2', 'BG3', 'BG4', 'BG5'] as HandoverStage[]).map((st) => (
                 <button
@@ -503,7 +594,9 @@ export function FieldAppPanel() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">3. Khối lượng thực (kg)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                {tx(lang, '3. Khối lượng thực (kg)', '3. 実測重量 (kg)')}
+              </label>
               <input
                 type="number"
                 step="0.1"
@@ -514,7 +607,9 @@ export function FieldAppPanel() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">4. Nhiệt độ đo (°C)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                {tx(lang, '4. Nhiệt độ đo (°C)', '4. 測定温度 (°C)')}
+              </label>
               <input
                 type="number"
                 step="0.1"
@@ -529,7 +624,7 @@ export function FieldAppPanel() {
           {stage === 'BG3' && (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Chọn buồng kho nhập (FR-18)
+                {tx(lang, 'Chọn buồng kho nhập (FR-18)', '入庫先庫室の選択 (FR-18)')}
               </label>
               <select
                 value={chamberId}
@@ -538,14 +633,18 @@ export function FieldAppPanel() {
               >
                 {warehouseChambers.map((ch) => (
                   <option key={ch.id} value={ch.id}>
-                    {ch.name} ({tgName(ch.tempGroupId)})
+                    {displayPlace(ch.name, lang)} ({tgName(ch.tempGroupId)})
                   </option>
                 ))}
               </select>
               {wrongTempChamberWarning && (
                 <div className="mt-2 p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  CẢNH BÁO FR-18 / BR-05: Buồng này KHÁC nhóm nhiệt của lô hàng!
+                  {tx(
+                    lang,
+                    'CẢNH BÁO FR-18 / BR-05: Buồng này KHÁC nhóm nhiệt của lô hàng!',
+                    '警告 FR-18 / BR-05: この庫室はロットの指定温度帯と異なります！'
+                  )}
                 </div>
               )}
             </div>
@@ -554,7 +653,9 @@ export function FieldAppPanel() {
           {stage === 'BG5' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kg Đạt</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {tx(lang, 'Kg Đạt', '合格重量 (kg)')}
+                </label>
                 <input
                   type="number"
                   value={acceptedKg}
@@ -563,7 +664,9 @@ export function FieldAppPanel() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kg Không đạt</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {tx(lang, 'Kg Không đạt', '不合格重量 (kg)')}
+                </label>
                 <input
                   type="number"
                   value={rejectedKg}
@@ -576,13 +679,17 @@ export function FieldAppPanel() {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Ghi chú / Lý do (bắt buộc nếu lệch &gt;2% hoặc ngoài dải nhiệt)
+              {tx(
+                lang,
+                'Ghi chú / Lý do (bắt buộc nếu lệch >2% hoặc ngoài dải nhiệt)',
+                '備考・理由（2%超の重量差異または温度逸脱時は必須）'
+              )}
             </label>
             <input
               type="text"
               value={varianceReason}
               onChange={(e) => setVarianceReason(e.target.value)}
-              placeholder="Nhập lý do nếu có chênh lệch..."
+              placeholder={tx(lang, 'Nhập lý do nếu có chênh lệch...', '差異がある場合は理由を入力...')}
               className="w-full min-h-[44px] rounded-xl border border-slate-300 px-3 text-sm"
             />
           </div>
@@ -591,28 +698,35 @@ export function FieldAppPanel() {
             type="submit"
             className="w-full min-h-[52px] rounded-xl bg-emerald-600 text-white text-base font-bold hover:bg-emerald-700 shadow-sm flex items-center justify-center gap-2"
           >
-            <CheckCircle2 className="w-5 h-5" /> 5. Xác nhận điện tử ePOD {stage}
+            <CheckCircle2 className="w-5 h-5" />{' '}
+            {tx(lang, `5. Xác nhận điện tử ePOD ${stage}`, `5. 電子署名 ePOD ${stage} を確定`)}
           </button>
         </form>
       </Card>
 
       {/* 2. Role-Adaptive Task Cards */}
       {currentUser?.role === 'NHA_CUNG_CAP' && (
-        <Card title="Kế hoạch thu hoạch & Khai báo nguồn gốc HTX (FR-11, FR-13)">
+        <Card
+          title={tx(
+            lang,
+            'Kế hoạch thu hoạch & Khai báo nguồn gốc HTX (FR-11, FR-13)',
+            '収穫計画・農協(HTX)産地申告 (FR-11, FR-13)'
+          )}
+        >
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
                 value={originArea}
                 onChange={(e) => setOriginArea(e.target.value)}
-                placeholder="Vùng trồng"
+                placeholder={tx(lang, 'Vùng trồng', '生産地')}
                 className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
               />
               <input
                 type="text"
                 value={originCert}
                 onChange={(e) => setOriginCert(e.target.value)}
-                placeholder="Chứng nhận VietGAP"
+                placeholder={tx(lang, 'Chứng nhận VietGAP', 'VietGAP認証番号')}
                 className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
               />
             </div>
@@ -620,17 +734,24 @@ export function FieldAppPanel() {
               p.allocations.map((a) => (
                 <div key={a.id} className="p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
                   <div className="flex justify-between font-bold">
-                    <span>{prodName(a.productId)} ({p.planDate})</span>
-                    <Badge tone={a.confirmationStatus === 'DA_XAC_NHAN' ? 'emerald' : 'amber'}>
-                      {a.confirmationStatus}
-                    </Badge>
+                    <span>
+                      {prodName(a.productId)} ({p.planDate})
+                    </span>
+                    <AllocConfirmBadge status={a.confirmationStatus} />
                   </div>
-                  <div>Yêu cầu thu hoạch: <strong>{a.requiredRawKg} kg</strong></div>
+                  <div>
+                    {tx(lang, 'Yêu cầu thu hoạch:', '必要収穫数量:')}{' '}
+                    <strong>{formatNum(a.requiredRawKg, lang)} kg</strong>
+                  </div>
                   <button
                     onClick={() => handleHtxConfirm(p.id, a.id, a.requiredRawKg)}
                     className="w-full min-h-[42px] rounded-xl bg-emerald-600 text-white font-bold"
                   >
-                    Xác nhận đủ {a.requiredRawKg} kg & Gửi nguồn gốc
+                    {tx(
+                      lang,
+                      `Xác nhận đủ ${a.requiredRawKg} kg & Gửi nguồn gốc`,
+                      `${a.requiredRawKg} kg 供給確定・産地情報を送信`
+                    )}
                   </button>
                 </div>
               ))
@@ -641,7 +762,13 @@ export function FieldAppPanel() {
 
       {currentUser?.role === 'NHAN_VIEN_SO_CHE' && (
         <>
-          <Card title="Phân loại, Tạo lô mới & In tem QR (FR-15, FR-16)">
+          <Card
+            title={tx(
+              lang,
+              'Phân loại, Tạo lô mới & In tem QR (FR-15, FR-16)',
+              '選果・新規ロット作成・QRラベル発行 (FR-15, FR-16)'
+            )}
+          >
             <form onSubmit={handleCreateLot} className="space-y-3">
               <div className="grid grid-cols-2 gap-2.5">
                 <select
@@ -653,7 +780,7 @@ export function FieldAppPanel() {
                     .filter((o) => o.type === 'NHA_CUNG_CAP')
                     .map((o) => (
                       <option key={o.id} value={o.id}>
-                        {o.name}
+                        {displayOrgName(o.name, lang)}
                       </option>
                     ))}
                 </select>
@@ -664,12 +791,14 @@ export function FieldAppPanel() {
                 >
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}
+                      {displayProductName(p.name, lang)}
                     </option>
                   ))}
                 </select>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600">Hàng thô BG1 (kg)</label>
+                  <label className="block text-[11px] font-bold text-slate-600">
+                    {tx(lang, 'Hàng thô BG1 (kg)', 'BG1 受入原重量 (kg)')}
+                  </label>
                   <input
                     type="number"
                     value={sortRawKg}
@@ -678,7 +807,9 @@ export function FieldAppPanel() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600">Kg Đạt (tạo lô)</label>
+                  <label className="block text-[11px] font-bold text-slate-600">
+                    {tx(lang, 'Kg Đạt (tạo lô)', '選果合格重量 (kg)')}
+                  </label>
                   <input
                     type="number"
                     value={sortAcceptedKg}
@@ -691,39 +822,51 @@ export function FieldAppPanel() {
                 type="text"
                 value={sortRejectReason}
                 onChange={(e) => setSortRejectReason(e.target.value)}
-                placeholder="Lý do loại"
+                placeholder={tx(lang, 'Lý do loại', '選果除外理由')}
                 className="w-full min-h-[42px] rounded-xl border border-slate-300 px-3 text-xs"
               />
               <button
                 type="submit"
                 className="w-full min-h-[48px] rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center justify-center gap-2"
               >
-                <PackagePlus className="w-4 h-4" /> Tạo lô & Sinh tem QR
+                <PackagePlus className="w-4 h-4" />{' '}
+                {tx(lang, 'Tạo lô & Sinh tem QR', 'ロット作成・QRコード発行')}
               </button>
             </form>
           </Card>
 
-          <Card title="Phòng mát & In lại tem QR lô của cơ sở (FR-17)">
+          <Card
+            title={tx(
+              lang,
+              'Phòng mát & In lại tem QR lô của cơ sở (FR-17)',
+              '予冷室入庫・施設ロットQR再発行 (FR-17)'
+            )}
+          >
             <div className="space-y-2.5">
               {lots.slice(0, 5).map((l) => (
-                <div key={l.id} className="p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div
+                  key={l.id}
+                  className="p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2"
+                >
                   <div>
                     <div className="font-mono text-xs font-bold">{l.lotCode}</div>
-                    <div className="text-xs text-slate-500">{prodName(l.productId)} · {l.currentKg} kg</div>
+                    <div className="text-xs text-slate-500">
+                      {prodName(l.productId)} · {formatNum(l.currentKg, lang)} kg
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setQrLot(l)}
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold inline-flex items-center gap-1"
                     >
-                      <QrCode className="w-3.5 h-3.5" /> Tem QR
+                      <QrCode className="w-3.5 h-3.5" /> {tx(lang, 'Tem QR', 'QRラベル')}
                     </button>
                     {l.status === 'DA_TAO' && (
                       <button
                         onClick={() => handleCoolingAction(l.id, 'ENTER_COOLING')}
                         className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold inline-flex items-center gap-1"
                       >
-                        <Snowflake className="w-3.5 h-3.5" /> Vào phòng mát
+                        <Snowflake className="w-3.5 h-3.5" /> {tx(lang, 'Vào phòng mát', '予冷室入庫')}
                       </button>
                     )}
                   </div>
@@ -735,7 +878,7 @@ export function FieldAppPanel() {
       )}
 
       {currentUser?.role === 'NHAN_VIEN_KHO' && (
-        <Card title="Tồn kho ưu tiên xuất FEFO (FR-19, FR-20)">
+        <Card title={tx(lang, 'Tồn kho ưu tiên xuất FEFO (FR-19, FR-20)', 'FEFO 優先出庫在庫 (FR-19, FR-20)')}>
           <div className="space-y-2.5">
             {fefoQueue.map((item, idx) => {
               const l = lots.find((x) => x.id === item.lotId);
@@ -748,10 +891,14 @@ export function FieldAppPanel() {
                       <span className="font-mono text-xs font-bold">{l.lotCode}</span>
                     </div>
                     <div className="text-xs text-slate-600 mt-1">
-                      {prodName(l.productId)} · {l.currentKg} kg
+                      {prodName(l.productId)} · {formatNum(l.currentKg, lang)} kg
                     </div>
                   </div>
-                  {item.isWarning && <Badge tone="rose">Lưu {item.usagePct}%</Badge>}
+                  {item.isWarning && (
+                    <Badge tone="rose">
+                      {tx(lang, `Lưu ${item.usagePct}%`, `保管 ${item.usagePct}%`)}
+                    </Badge>
+                  )}
                 </div>
               );
             })}
@@ -760,7 +907,7 @@ export function FieldAppPanel() {
       )}
 
       {currentUser?.role === 'TAI_XE' && (
-        <Card title="Lệnh chuyến & Check-in GPS (FR-24, NFR-09)">
+        <Card title={tx(lang, 'Lệnh chuyến & Check-in GPS (FR-24, NFR-09)', '配車指示・GPSチェックイン (FR-24, NFR-09)')}>
           <div className="space-y-3">
             {trips.map((t) => (
               <div key={t.id} className="p-3.5 rounded-xl border border-slate-200 space-y-2.5">
@@ -768,7 +915,7 @@ export function FieldAppPanel() {
                   <span className="font-mono text-xs font-bold flex items-center gap-1.5">
                     <Truck className="w-4 h-4 text-blue-600" /> {t.code}
                   </span>
-                  <Badge tone={t.status === 'DANG_CHAY' ? 'blue' : 'emerald'}>{t.status}</Badge>
+                  <TripStatusBadge status={t.status} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {t.status === 'MOI_TAO' && (
@@ -776,7 +923,7 @@ export function FieldAppPanel() {
                       onClick={() => handleTripAction(t.id, 'START')}
                       className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold"
                     >
-                      Nhận lệnh & Bắt đầu chạy
+                      {tx(lang, 'Nhận lệnh & Bắt đầu chạy', '指示受領・運行開始')}
                     </button>
                   )}
                   {t.stops.map((s) => (
@@ -790,7 +937,17 @@ export function FieldAppPanel() {
                       }`}
                     >
                       <MapPin className="w-3.5 h-3.5" />
-                      {s.actualCheckInTime ? `Đã check-in: ${s.locationName}` : `Check-in GPS: ${s.locationName}`}
+                      {s.actualCheckInTime
+                        ? tx(
+                            lang,
+                            `Đã check-in: ${s.locationName}`,
+                            `チェックイン済: ${displayPlace(s.locationName, lang)}`
+                          )
+                        : tx(
+                            lang,
+                            `Check-in GPS: ${s.locationName}`,
+                            `GPSチェックイン: ${displayPlace(s.locationName, lang)}`
+                          )}
                     </button>
                   ))}
                 </div>
@@ -802,17 +959,26 @@ export function FieldAppPanel() {
 
       {/* Partner Claims Explanation (FR-39) & Alerts */}
       {claims.filter((c) => c.status !== 'DA_PHAN_QUYET').length > 0 && (
-        <Card title="Khiếu nại đề xuất liên quan (Giải trình trong 48h — FR-39)">
+        <Card
+          title={tx(
+            lang,
+            'Khiếu nại đề xuất liên quan (Giải trình trong 48h — FR-39)',
+            '関連クレーム（48時間以内に弁明提出 — FR-39）'
+          )}
+        >
           <div className="space-y-3">
             {claims
               .filter((c) => c.status !== 'DA_PHAN_QUYET')
               .map((c) => (
                 <div key={c.id} className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2 text-xs">
-                  <div className="font-bold text-amber-900">{c.code} · {c.systemSuggestedStage}</div>
-                  <p className="text-amber-800">{c.systemSuggestionDetail}</p>
+                  <div className="font-bold text-amber-900">
+                    {c.code} · {displayOperationalText(c.systemSuggestedStage, lang)}
+                  </div>
+                  <p className="text-amber-800">{displayOperationalText(c.systemSuggestionDetail, lang)}</p>
                   {c.partnerExplanation ? (
                     <div className="text-emerald-700 font-semibold">
-                      Đã gửi giải trình: {c.partnerExplanation.content}
+                      {tx(lang, 'Đã gửi giải trình:', '提出済弁明:')}{' '}
+                      {displayOperationalText(c.partnerExplanation.content, lang)}
                     </div>
                   ) : (
                     <div className="flex gap-2">
@@ -820,14 +986,14 @@ export function FieldAppPanel() {
                         type="text"
                         value={explainText}
                         onChange={(e) => setExplainText(e.target.value)}
-                        placeholder="Nhập giải trình của đối tác..."
+                        placeholder={tx(lang, 'Nhập giải trình của đối tác...', 'パートナー弁明を入力...')}
                         className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs"
                       />
                       <button
                         onClick={() => handleSubmitExplanation(c.id)}
                         className="px-3 py-2 rounded-xl bg-slate-900 text-white font-bold"
                       >
-                        Gửi giải trình
+                        {tx(lang, 'Gửi giải trình', '弁明を送信')}
                       </button>
                     </div>
                   )}
@@ -839,15 +1005,16 @@ export function FieldAppPanel() {
 
       {/* Alerts of current partner */}
       {alerts.length > 0 && (
-        <Card title="Cảnh báo nhiệt độ của đơn vị">
+        <Card title={tx(lang, 'Cảnh báo nhiệt độ của đơn vị', '自社の温度アラート')}>
           <div className="space-y-2">
             {alerts.slice(0, 5).map((a) => (
               <div key={a.id} className="p-3 rounded-xl border border-rose-200 bg-rose-50/40 text-xs flex justify-between">
                 <div>
-                  <strong>{a.stage}</strong> · {a.durationMinutes} phút
+                  <strong>{displayPlace(a.stage, lang)}</strong> · {a.durationMinutes}{' '}
+                  {tx(lang, 'phút', '分')}
                 </div>
                 <Badge tone={a.acknowledgedAt ? 'emerald' : 'rose'}>
-                  {a.acknowledgedAt ? 'Đã xử lý' : 'Chưa xác nhận'}
+                  {a.acknowledgedAt ? tx(lang, 'Đã xử lý', '対応済') : tx(lang, 'Chưa xác nhận', '未確認')}
                 </Badge>
               </div>
             ))}
@@ -861,7 +1028,7 @@ export function FieldAppPanel() {
           onClose={() => setQrLot(null)}
           lotCode={qrLot.lotCode}
           qrToken={qrLot.qrToken}
-          productName={prodName(qrLot.productId)}
+          productName={products.find((p) => p.id === qrLot.productId)?.name ?? qrLot.productId}
           packingDate={qrLot.packingDate}
           weightKg={qrLot.currentKg}
         />

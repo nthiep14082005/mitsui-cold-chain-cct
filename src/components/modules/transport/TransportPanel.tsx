@@ -3,8 +3,14 @@
 import React, { useState } from 'react';
 import { AlertOctagon, Plus, Truck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, TripStatusBadge, TripTypeBadge } from '@/components/ui/Badge';
 import { useCct } from '@/components/layout/CctContext';
+import {
+  displayProductName,
+  displayTempGroupName,
+  formatNum,
+  tx,
+} from '@/lib/i18n';
 import { Product, TempGroup, Vehicle } from '@/types/catalog';
 import { Lot } from '@/types/lot-epod';
 import { Trip, TripAssignment, TripType } from '@/types/transport-temp';
@@ -22,7 +28,7 @@ export function TransportPanel({
   tempGroups: TempGroup[];
   trips: Trip[];
 }) {
-  const { pushToast, triggerRefresh } = useCct();
+  const { pushToast, triggerRefresh, lang } = useCct();
   const [tripType, setTripType] = useState<TripType>('GIAO_HANG');
   const [vehicleId, setVehicleId] = useState(vehicles[1]?.id || vehicles[0]?.id || '');
   const [plannedDate, setPlannedDate] = useState('2026-11-26');
@@ -40,8 +46,8 @@ export function TransportPanel({
   );
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId) ?? vehicles[0];
   const lotMap = new Map(lots.map((l) => [l.id, l]));
-  const prodName = (id: string) => products.find((p) => p.id === id)?.name ?? id;
-  const tgName = (id: string) => tempGroups.find((t) => t.id === id)?.name ?? id;
+  const prodName = (id: string) => displayProductName(products.find((p) => p.id === id)?.name ?? id, lang);
+  const tgName = (id: string) => displayTempGroupName(tempGroups.find((t) => t.id === id)?.name ?? id, lang);
 
   // Client-side pre-check matching server BR-05 so Dispatcher gets instant feedback
   const checkClientBr05 = (nextList: TripAssignment[]): string | null => {
@@ -56,11 +62,19 @@ export function TransportPanel({
       set.add(lot.tempGroupId);
       byComp.set(a.compartmentNo, set);
       if (set.size > 1) {
-        return `CHẶN BR-05: Không được xếp 2 lô khác nhóm nhiệt (Lạnh 0–4°C và Mát 10–13°C) vào cùng Khoang ${a.compartmentNo}!`;
+        return tx(
+          lang,
+          `CHẶN BR-05: Không được xếp 2 lô khác nhóm nhiệt (Lạnh 0–4°C và Mát 10–13°C) vào cùng Khoang ${a.compartmentNo}!`,
+          `BR-05ブロック: 異なる温度帯（冷蔵 0–4°C と 定温 10–13°C）のロットを同じ第${a.compartmentNo}室に混載できません！`
+        );
       }
     }
     if (total > selectedVehicle.capacityKg) {
-      return `CHẶN FR-23: Tổng tải (${total} kg) vượt tải trọng xe (${selectedVehicle.capacityKg} kg)!`;
+      return tx(
+        lang,
+        `CHẶN FR-23: Tổng tải (${total} kg) vượt tải trọng xe (${selectedVehicle.capacityKg} kg)!`,
+        `FR-23ブロック: 総積載重量（${formatNum(total, lang)} kg）が車両最大積載量（${formatNum(selectedVehicle.capacityKg, lang)} kg）を超過しています！`
+      );
     }
     return null;
   };
@@ -70,7 +84,9 @@ export function TransportPanel({
     const lot = lotMap.get(selectedLotId);
     if (!lot) return;
     if (assignments.some((a) => a.lotId === lot.id)) {
-      return setBr05Error('Lô này đã được thêm vào chuyến.');
+      return setBr05Error(
+        tx(lang, 'Lô này đã được thêm vào chuyến.', 'このロットはすでに配車リストに追加されています。')
+      );
     }
     const next = [
       ...assignments,
@@ -101,11 +117,19 @@ export function TransportPanel({
     });
     const data = await res.json();
     if (!res.ok) {
-      setBr05Error(data.error || 'Lỗi tạo chuyến');
-      pushToast('error', data.error || 'Lỗi tạo chuyến');
+      const msg = data.error || tx(lang, 'Lỗi tạo chuyến', '配車便作成エラー');
+      setBr05Error(msg);
+      pushToast('error', msg);
       return;
     }
-    pushToast('success', `Đã tạo chuyến ${data.trip.code} (Lấp đầy ${data.trip.fillRatePct}%)`);
+    pushToast(
+      'success',
+      tx(
+        lang,
+        `Đã tạo chuyến ${data.trip.code} (Lấp đầy ${data.trip.fillRatePct}%)`,
+        `配車便 ${data.trip.code} を発行しました（積載率 ${data.trip.fillRatePct}%）`
+      )
+    );
     setAssignments([]);
     triggerRefresh();
   };
@@ -119,25 +143,37 @@ export function TransportPanel({
     <div className="space-y-4">
       {/* Manual Trip Builder (FR-22, FR-23, BR-05) */}
       <Card
-        title="Xếp chuyến thủ công & Kiểm tra BR-05 (FR-22, FR-23)"
-        subtitle="Chặn cứng xếp lô Lạnh (0–4°C) và Mát (10–13°C) vào cùng khoang xe; chặn vượt tải trọng"
+        title={tx(lang, 'Xếp chuyến thủ công & Kiểm tra BR-05 (FR-22, FR-23)', '手動配車・積載計画・BR-05チェック (FR-22, FR-23)')}
+        subtitle={tx(
+          lang,
+          'Chặn cứng xếp lô Lạnh (0–4°C) và Mát (10–13°C) vào cùng khoang xe; chặn vượt tải trọng',
+          '同一荷室への冷蔵(0–4°C)・定温(10–13°C)混載をハードブロック、および過積載を防止'
+        )}
       >
         <form onSubmit={handleCreateTrip} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Loại chuyến</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Loại chuyến', '便種別')}
+              </label>
               <select
                 value={tripType}
                 onChange={(e) => setTripType(e.target.value as TripType)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               >
-                <option value="THU_GOM">Thu gom (HTX → Sơ chế)</option>
-                <option value="TRUNG_CHUYEN">Trung chuyển (Sơ chế → Kho Bến Lức)</option>
-                <option value="GIAO_HANG">Giao hàng (Kho Bến Lức → TP.HCM)</option>
+                <option value="THU_GOM">{tx(lang, 'Thu gom (HTX → Sơ chế)', '集荷輸送 (HTX → 選果場)')}</option>
+                <option value="TRUNG_CHUYEN">
+                  {tx(lang, 'Trung chuyển (Sơ chế → Kho Bến Lức)', '中継輸送 (選果場 → ベンルック倉庫)')}
+                </option>
+                <option value="GIAO_HANG">
+                  {tx(lang, 'Giao hàng (Kho Bến Lức → TP.HCM)', '店舗配送 (ベンルック倉庫 → ホーチミン)')}
+                </option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Xe & Khoang</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Xe & Khoang', '車両・荷室数')}
+              </label>
               <select
                 value={selectedVehicle?.id ?? ''}
                 onChange={(e) => {
@@ -150,13 +186,16 @@ export function TransportPanel({
               >
                 {vehicles.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.plateNumber} ({v.capacityKg.toLocaleString('vi-VN')} kg · {v.compartments.length} khoang)
+                    {v.plateNumber} ({formatNum(v.capacityKg, lang)} kg · {v.compartments.length}{' '}
+                    {tx(lang, 'khoang', '室')})
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Ngày chạy</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Ngày chạy', '運行予定日')}
+              </label>
               <input
                 type="date"
                 value={plannedDate}
@@ -165,7 +204,9 @@ export function TransportPanel({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Khung giờ mục tiêu</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Khung giờ mục tiêu', '目標納品時間帯')}
+              </label>
               <input
                 type="text"
                 value={targetTimeSlot}
@@ -177,7 +218,11 @@ export function TransportPanel({
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
             <div className="text-xs font-semibold text-slate-700">
-              Chọn lô hàng gán vào khoang xe (để test BR-05, hãy thử gán 1 lô Lạnh và 1 lô Mát vào cùng Khoang 1):
+              {tx(
+                lang,
+                'Chọn lô hàng gán vào khoang xe (để test BR-05, hãy thử gán 1 lô Lạnh và 1 lô Mát vào cùng Khoang 1):',
+                '荷室に割り当てるロットを選択（BR-05の検証：冷蔵ロットと定温ロットを同じ第1室へ追加してみてください）:'
+              )}
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <select
@@ -185,10 +230,11 @@ export function TransportPanel({
                 onChange={(e) => setSelectedLotId(e.target.value)}
                 className="flex-1 min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
               >
-                <option value="">-- Chọn lô hàng --</option>
+                <option value="">{tx(lang, '-- Chọn lô hàng --', '-- ロットを選択 --')}</option>
                 {availableLots.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.lotCode} · {prodName(l.productId)} · {tgName(l.tempGroupId)} · {l.currentKg} kg
+                    {l.lotCode} · {prodName(l.productId)} · {tgName(l.tempGroupId)} ·{' '}
+                    {formatNum(l.currentKg, lang)} kg
                   </option>
                 ))}
               </select>
@@ -200,7 +246,11 @@ export function TransportPanel({
               >
                 {(selectedVehicle?.compartments ?? []).map((c) => (
                   <option key={c.compartmentNo} value={c.compartmentNo}>
-                    Khoang {c.compartmentNo} (tối đa {c.capacityKg} kg)
+                    {tx(
+                      lang,
+                      `Khoang ${c.compartmentNo} (tối đa ${c.capacityKg} kg)`,
+                      `第${c.compartmentNo}室 (最大 ${formatNum(c.capacityKg, lang)} kg)`
+                    )}
                   </option>
                 ))}
               </select>
@@ -211,7 +261,7 @@ export function TransportPanel({
                 disabled={!selectedLotId}
                 className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 disabled:opacity-40"
               >
-                <Plus className="w-4 h-4" /> Gán vào khoang
+                <Plus className="w-4 h-4" /> {tx(lang, 'Gán vào khoang', '荷室へ割当')}
               </button>
             </div>
 
@@ -226,10 +276,13 @@ export function TransportPanel({
               <div className="space-y-2 pt-2">
                 <div className="flex items-center justify-between text-xs">
                   <span>
-                    Tổng khối lượng: <strong>{totalDraftKg.toLocaleString('vi-VN')} kg</strong> /{' '}
-                    {selectedVehicle?.capacityKg.toLocaleString('vi-VN')} kg
+                    {tx(lang, 'Tổng khối lượng:', '合計重量:')}{' '}
+                    <strong>{formatNum(totalDraftKg, lang)} kg</strong> /{' '}
+                    {selectedVehicle ? formatNum(selectedVehicle.capacityKg, lang) : 0} kg
                   </span>
-                  <span className="font-bold text-emerald-700">Tỷ lệ lấp đầy: {draftFillPct}%</span>
+                  <span className="font-bold text-emerald-700">
+                    {tx(lang, `Tỷ lệ lấp đầy: ${draftFillPct}%`, `積載率: ${draftFillPct}%`)}
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {assignments.map((a) => {
@@ -241,9 +294,10 @@ export function TransportPanel({
                       >
                         <span className="font-mono font-bold">{lot?.lotCode}</span>
                         <Badge tone={lot?.tempGroupId === 'TG-LANH' ? 'blue' : 'amber'}>
-                          Khoang {a.compartmentNo} · {lot ? tgName(lot.tempGroupId) : ''}
+                          {tx(lang, `Khoang ${a.compartmentNo}`, `第${a.compartmentNo}室`)} ·{' '}
+                          {lot ? tgName(lot.tempGroupId) : ''}
                         </Badge>
-                        <span>{a.weightKg} kg</span>
+                        <span>{formatNum(a.weightKg, lang)} kg</span>
                         <button
                           type="button"
                           onClick={() =>
@@ -267,14 +321,14 @@ export function TransportPanel({
               disabled={assignments.length === 0}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-40"
             >
-              <Truck className="w-4 h-4" /> Phát hành lệnh chuyến
+              <Truck className="w-4 h-4" /> {tx(lang, 'Phát hành lệnh chuyến', '配車指示を発行')}
             </button>
           </div>
         </form>
       </Card>
 
       {/* Trips List */}
-      <Card title="Danh sách chuyến vận tải lạnh">
+      <Card title={tx(lang, 'Danh sách chuyến vận tải lạnh', '冷蔵輸送便一覧')}>
         <div className="space-y-3">
           {trips.map((t) => {
             const veh = vehicles.find((v) => v.id === t.vehicleId);
@@ -286,18 +340,22 @@ export function TransportPanel({
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-bold text-slate-900">{t.code}</span>
-                    <Badge tone="slate">{t.tripType}</Badge>
-                    <Badge tone={t.status === 'DANG_CHAY' ? 'blue' : 'emerald'}>{t.status}</Badge>
-                    {t.isLateEta && <Badge tone="rose">Trễ ETA dự kiến</Badge>}
+                    <TripTypeBadge tripType={t.tripType} />
+                    <TripStatusBadge status={t.status} />
+                    {t.isLateEta && (
+                      <Badge tone="rose">{tx(lang, 'Trễ ETA dự kiến', 'ETA遅延見込')}</Badge>
+                    )}
                   </div>
                   <div className="text-xs text-slate-600">
-                    Xe <strong>{veh?.plateNumber ?? t.vehicleId}</strong> · Tải{' '}
-                    <strong>{t.totalWeightKg.toLocaleString('vi-VN')} kg</strong> (Lấp đầy{' '}
-                    <strong>{t.fillRatePct}%</strong>) · {t.assignments.length} lô
+                    {tx(lang, 'Xe', '車両')} <strong>{veh?.plateNumber ?? t.vehicleId}</strong> ·{' '}
+                    {tx(lang, 'Tải', '積載')}{' '}
+                    <strong>{formatNum(t.totalWeightKg, lang)} kg</strong> (
+                    {tx(lang, 'Lấp đầy', '積載率')} <strong>{t.fillRatePct}%</strong>) ·{' '}
+                    {t.assignments.length} {tx(lang, 'lô', 'ロット')}
                   </div>
                 </div>
                 <div className="text-xs text-slate-500">
-                  Ngày: <strong>{t.plannedDate}</strong>
+                  {tx(lang, 'Ngày:', '運行日:')} <strong>{t.plannedDate}</strong>
                 </div>
               </div>
             );

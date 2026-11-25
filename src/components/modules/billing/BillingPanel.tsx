@@ -13,10 +13,10 @@ import {
 } from 'recharts';
 import { Calculator, CheckCircle2, Download, RefreshCw } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { StatementStatusBadge } from '@/components/ui/Badge';
 import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import { displayOrgName, formatNum, formatVnd, tx } from '@/lib/i18n';
 import { MonthlyStatement } from '@/types/claim-billing-kpi';
 import { Organization } from '@/types/common';
 
@@ -69,7 +69,7 @@ export function BillingPanel() {
     loadData();
   }, [loadData, refreshTick]);
 
-  const orgName = (id: string) => orgs.find((o) => o.id === id)?.name ?? id;
+  const orgName = (id: string) => displayOrgName(orgs.find((o) => o.id === id)?.name ?? id, lang);
 
   const handleRecalculate = async () => {
     const res = await fetch('/api/billing', {
@@ -78,16 +78,22 @@ export function BillingPanel() {
       body: JSON.stringify({ action: 'RECALCULATE', month }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi tính bảng kê');
-    pushToast('success', `Đã đối soát lại toàn bộ bảng kê tháng ${month}`);
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi tính bảng kê', '精算計算エラー'));
+    pushToast(
+      'success',
+      tx(lang, `Đã đối soát lại toàn bộ bảng kê tháng ${month}`, `${month} の月次精算書を再集計しました`)
+    );
     triggerRefresh();
   };
 
   const handleConfirm = async (id: string) => {
     const res = await fetch(`/api/billing/${id}`, { method: 'PATCH' });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi xác nhận');
-    pushToast('success', `Đã xác nhận bảng kê ${data.statement.code}`);
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi xác nhận', '確定エラー'));
+    pushToast(
+      'success',
+      tx(lang, `Đã xác nhận bảng kê ${data.statement.code}`, `精算書 ${data.statement.code} を確定しました`)
+    );
     triggerRefresh();
   };
 
@@ -100,10 +106,13 @@ export function BillingPanel() {
 
   const breakEvenChartData = report
     ? [
-        { name: 'Sản lượng đạt BG5 (tấn)', value: report.actualTons },
-        { name: 'Điểm hòa vốn (tấn)', value: report.breakEvenTons },
+        { name: tx(lang, 'Sản lượng đạt BG5 (tấn)', 'BG5合格納品量 (トン)'), value: report.actualTons },
+        { name: tx(lang, 'Điểm hòa vốn (tấn)', '損益分岐点 (トン)'), value: report.breakEvenTons },
       ]
     : [];
+
+  const millionUnit = tx(lang, 'tr đ', '百万VND');
+  const perKgUnit = tx(lang, 'đ/kg', 'VND/kg');
 
   return (
     <div className="space-y-6">
@@ -136,7 +145,7 @@ export function BillingPanel() {
             disabled={currentUser?.role !== 'QUAN_LY_QC'}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Tính lại bảng kê (QC)
+            <RefreshCw className="w-3.5 h-3.5" /> {tx(lang, 'Tính lại bảng kê (QC)', '精算再計算 (QC)')}
           </button>
         </div>
       </div>
@@ -144,27 +153,43 @@ export function BillingPanel() {
       {report && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
-            label="Doanh thu khách hàng (ròng)"
-            value={`${Math.round(report.totalRevenueVnd / 1_000_000).toLocaleString('vi-VN')} tr đ`}
-            sub={`Sản lượng tính cước: ${report.billableTons} tấn`}
+            label={tx(lang, 'Doanh thu khách hàng (ròng)', '顧客純売上高')}
+            value={`${formatNum(Math.round(report.totalRevenueVnd / 1_000_000), lang)} ${millionUnit}`}
+            sub={tx(
+              lang,
+              `Sản lượng tính cước: ${report.billableTons} tấn`,
+              `課金対象量: ${report.billableTons} トン`
+            )}
             tone="emerald"
           />
           <StatCard
-            label="Chi phí trả đối tác"
-            value={`${Math.round(report.totalPartnerCostVnd / 1_000_000).toLocaleString('vi-VN')} tr đ`}
-            sub={`Biên đóng góp: ${report.contributionMarginPerKg.toLocaleString('vi-VN')} đ/kg`}
+            label={tx(lang, 'Chi phí trả đối tác', 'パートナー支払費用')}
+            value={`${formatNum(Math.round(report.totalPartnerCostVnd / 1_000_000), lang)} ${millionUnit}`}
+            sub={tx(
+              lang,
+              `Biên đóng góp: ${formatNum(report.contributionMarginPerKg, lang)} ${perKgUnit}`,
+              `限界利益: ${formatNum(report.contributionMarginPerKg, lang)} ${perKgUnit}`
+            )}
             tone="blue"
           />
           <StatCard
-            label="Lợi nhuận vận hành"
-            value={`${Math.round(report.operatingProfitVnd / 1_000_000).toLocaleString('vi-VN')} tr đ`}
-            sub={`Sau ${Math.round(report.fixedOverheadVnd / 1_000_000)} tr chi phí cố định`}
+            label={tx(lang, 'Lợi nhuận vận hành', '営業利益')}
+            value={`${formatNum(Math.round(report.operatingProfitVnd / 1_000_000), lang)} ${millionUnit}`}
+            sub={tx(
+              lang,
+              `Sau ${Math.round(report.fixedOverheadVnd / 1_000_000)} tr chi phí cố định`,
+              `固定費 ${Math.round(report.fixedOverheadVnd / 1_000_000)} 百万VND差引後`
+            )}
             tone={report.operatingProfitVnd > 0 ? 'emerald' : 'rose'}
           />
           <StatCard
-            label="Chi phí điều phối HT / kg (NFR-15)"
-            value={`${report.coordCostPerKg.toLocaleString('vi-VN')} đ/kg`}
-            sub={`Khung mục tiêu: ${report.coordCostTargetMin}–${report.coordCostTargetMax} đ/kg`}
+            label={tx(lang, 'Chi phí điều phối HT / kg (NFR-15)', 'システム調整単価 / kg (NFR-15)')}
+            value={`${formatNum(report.coordCostPerKg, lang)} ${perKgUnit}`}
+            sub={tx(
+              lang,
+              `Khung mục tiêu: ${report.coordCostTargetMin}–${report.coordCostTargetMax} đ/kg`,
+              `目標レンジ: ${report.coordCostTargetMin}–${report.coordCostTargetMax} VND/kg`
+            )}
             tone={report.coordCostPerKg <= report.coordCostTargetMax ? 'emerald' : 'amber'}
           />
         </div>
@@ -172,8 +197,12 @@ export function BillingPanel() {
 
       {/* Customer Statements */}
       <Card
-        title="Bảng kê Khách hàng B2B (Take-or-Pay BR-12)"
-        subtitle="Áp dụng giảm trừ bồi hoàn theo phán quyết QC đã chốt trong tháng (FR-42)"
+        title={tx(lang, 'Bảng kê Khách hàng B2B (Take-or-Pay BR-12)', 'B2B顧客 月次精算書 (Take-or-Pay BR-12)')}
+        subtitle={tx(
+          lang,
+          'Áp dụng giảm trừ bồi hoàn theo phán quyết QC đã chốt trong tháng (FR-42)',
+          '当月確定済みの QC裁定による補償控除を自動反映 (FR-42)'
+        )}
       >
         <ResponsiveTable
           data={customerSts}
@@ -181,7 +210,7 @@ export function BillingPanel() {
           columns={[
             {
               key: 'code',
-              header: 'Mã bảng kê / Khách hàng',
+              header: tx(lang, 'Mã bảng kê / Khách hàng', '精算書番号 / 顧客'),
               render: (s) => (
                 <div>
                   <div className="font-mono text-xs font-bold text-slate-900">{s.code}</div>
@@ -191,52 +220,57 @@ export function BillingPanel() {
             },
             {
               key: 'qty',
-              header: 'Cam kết / Giao đạt BG5',
+              header: tx(lang, 'Cam kết / Giao đạt BG5', '契約保証量 / BG5合格量'),
               render: (s) => (
                 <div className="text-xs">
-                  Cam kết: <strong>{((s.committedKg ?? 0) / 1000).toLocaleString('vi-VN')} tấn</strong>
+                  {tx(lang, 'Cam kết:', '契約:')}{' '}
+                  <strong>
+                    {formatNum((s.committedKg ?? 0) / 1000, lang)} {tx(lang, 'tấn', 'トン')}
+                  </strong>
                   <br />
-                  Giao đạt: <strong>{((s.acceptedKg ?? 0) / 1000).toLocaleString('vi-VN')} tấn</strong>
+                  {tx(lang, 'Giao đạt:', '納品:')}{' '}
+                  <strong>
+                    {formatNum((s.acceptedKg ?? 0) / 1000, lang)} {tx(lang, 'tấn', 'トン')}
+                  </strong>
                 </div>
               ),
             },
             {
               key: 'bill',
-              header: 'Tính cước / Đơn giá',
+              header: tx(lang, 'Tính cước / Đơn giá', '課金重量 / 単価'),
               render: (s) => (
                 <div className="text-xs">
-                  <strong>{s.billableKg.toLocaleString('vi-VN')} kg</strong> × {s.unitPriceVndPerKg.toLocaleString('vi-VN')} đ
+                  <strong>{formatNum(s.billableKg, lang)} kg</strong> ×{' '}
+                  {formatVnd(s.unitPriceVndPerKg, lang)}
                 </div>
               ),
             },
             {
               key: 'net',
-              header: 'Bồi hoàn / Phải thu ròng',
+              header: tx(lang, 'Bồi hoàn / Phải thu ròng', '補償控除 / 純請求額'),
               render: (s) => (
                 <div className="text-xs">
                   {s.deductionOrPenaltyVnd > 0 && (
-                    <div className="text-rose-600">-{s.deductionOrPenaltyVnd.toLocaleString('vi-VN')} đ</div>
+                    <div className="text-rose-600">-{formatVnd(s.deductionOrPenaltyVnd, lang)}</div>
                   )}
                   <div className="font-bold text-emerald-700 text-sm">
-                    {s.netAmountVnd.toLocaleString('vi-VN')} đ
+                    {formatVnd(s.netAmountVnd, lang)}
                   </div>
                 </div>
               ),
             },
             {
               key: 'actions',
-              header: 'Xác nhận & Xuất file',
+              header: tx(lang, 'Xác nhận & Xuất file', '確定・エクスポート'),
               render: (s) => (
                 <div className="flex flex-wrap gap-1.5 justify-end md:justify-start">
-                  <Badge tone={s.status === 'DA_XAC_NHAN' ? 'emerald' : 'amber'}>
-                    {s.status === 'DA_XAC_NHAN' ? 'Đã xác nhận' : 'Chờ xác nhận'}
-                  </Badge>
+                  <StatementStatusBadge status={s.status} />
                   {s.status !== 'DA_XAC_NHAN' && (
                     <button
                       onClick={() => handleConfirm(s.id)}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-semibold"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Xác nhận
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {tx(lang, 'Xác nhận', '確定')}
                     </button>
                   )}
                   <a
@@ -253,14 +287,14 @@ export function BillingPanel() {
       </Card>
 
       {/* Partner Statements */}
-      <Card title="Bảng kê Chi phí Đối tác (FR-41, FR-42)">
+      <Card title={tx(lang, 'Bảng kê Chi phí Đối tác (FR-41, FR-42)', 'パートナー費用精算書 (FR-41, FR-42)')}>
         <ResponsiveTable
           data={partnerSts}
           rowKey={(s) => s.id}
           columns={[
             {
               key: 'code',
-              header: 'Mã bảng kê / Đối tác',
+              header: tx(lang, 'Mã bảng kê / Đối tác', '精算書番号 / パートナー'),
               render: (s) => (
                 <div>
                   <div className="font-mono text-xs font-bold text-slate-900">{s.code}</div>
@@ -270,36 +304,36 @@ export function BillingPanel() {
             },
             {
               key: 'qty',
-              header: 'Khối lượng BG / Đơn giá',
+              header: tx(lang, 'Khối lượng BG / Đơn giá', '引渡重量 / 単価'),
               render: (s) => (
                 <span className="text-xs">
-                  {s.billableKg.toLocaleString('vi-VN')} kg × {s.unitPriceVndPerKg.toLocaleString('vi-VN')} đ
+                  {formatNum(s.billableKg, lang)} kg × {formatVnd(s.unitPriceVndPerKg, lang)}
                 </span>
               ),
             },
             {
               key: 'net',
-              header: 'Trừ phạt SLA / Thực trả',
+              header: tx(lang, 'Trừ phạt SLA / Thực trả', 'SLA違約金控除 / 純支払額'),
               render: (s) => (
                 <div className="text-xs">
                   {s.deductionOrPenaltyVnd > 0 && (
-                    <div className="text-rose-600">-{s.deductionOrPenaltyVnd.toLocaleString('vi-VN')} đ</div>
+                    <div className="text-rose-600">-{formatVnd(s.deductionOrPenaltyVnd, lang)}</div>
                   )}
                   <div className="font-bold text-slate-900 text-sm">
-                    {s.netAmountVnd.toLocaleString('vi-VN')} đ
+                    {formatVnd(s.netAmountVnd, lang)}
                   </div>
                 </div>
               ),
             },
             {
               key: 'export',
-              header: 'Hạch toán',
+              header: tx(lang, 'Hạch toán', '帳票出力'),
               render: (s) => (
                 <a
                   href={`/api/billing/export?statementId=${s.id}`}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-semibold hover:bg-slate-50"
                 >
-                  <Download className="w-3.5 h-3.5" /> Xuất CSV
+                  <Download className="w-3.5 h-3.5" /> {tx(lang, 'Xuất CSV', 'CSV出力')}
                 </a>
               ),
             },
@@ -310,11 +344,15 @@ export function BillingPanel() {
       {/* Break-even Chart & Take-or-Pay Formula Verifier */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card
-          title="So sánh Sản lượng tháng vs Điểm hòa vốn 400 tấn/tháng (FR-44)"
+          title={tx(
+            lang,
+            'So sánh Sản lượng tháng vs Điểm hòa vốn 400 tấn/tháng (FR-44)',
+            '月間取扱量 vs 損益分岐点 400トン/月 (FR-44)'
+          )}
           subtitle={
             report?.breakEvenReached
-              ? 'Đã vượt điểm hòa vốn 400 tấn/tháng!'
-              : 'Chưa đạt điểm hòa vốn 400 tấn/tháng'
+              ? tx(lang, 'Đã vượt điểm hòa vốn 400 tấn/tháng!', '損益分岐点（400トン/月）を達成しました！')
+              : tx(lang, 'Chưa đạt điểm hòa vốn 400 tấn/tháng', '損益分岐点（400トン/月）に未達です')
           }
         >
           <div className="h-56 w-full">
@@ -322,22 +360,34 @@ export function BillingPanel() {
               <BarChart data={breakEvenChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis unit=" tấn" tick={{ fontSize: 11 }} />
+                <YAxis unit={tx(lang, ' tấn', ' トン')} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <ReferenceLine y={400} stroke="#e11d48" strokeDasharray="4 4" label="400 tấn" />
-                <Bar dataKey="value" fill="#059669" radius={[8, 8, 0, 0]} />
+                <ReferenceLine
+                  y={400}
+                  stroke="#e11d48"
+                  strokeDasharray="4 4"
+                  label={tx(lang, '400 tấn', '400トン')}
+                />
+                <Bar
+                  dataKey="value"
+                  name={tx(lang, 'Sản lượng', '取扱量')}
+                  fill="#059669"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
         <Card
-          title="Máy tính kiểm chứng công thức Take-or-Pay (BR-12)"
-          subtitle="Phí tháng = P × max(Q_ck, Q_đạt) - B"
+          title={tx(lang, 'Máy tính kiểm chứng công thức Take-or-Pay (BR-12)', 'Take-or-Pay 課金検算シミュレータ (BR-12)')}
+          subtitle={tx(lang, 'Phí tháng = P × max(Q_ck, Q_đạt) - B', '月額料金 = P × max(Q_契約, Q_合格) - 補償B')}
         >
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block font-medium text-slate-600 mb-1">Cam kết Q_ck (tấn)</label>
+              <label className="block font-medium text-slate-600 mb-1">
+                {tx(lang, 'Cam kết Q_ck (tấn)', '契約保証量 Q_ck (トン)')}
+              </label>
               <input
                 type="number"
                 value={simCommitTons}
@@ -346,7 +396,9 @@ export function BillingPanel() {
               />
             </div>
             <div>
-              <label className="block font-medium text-slate-600 mb-1">Giao đạt Q_đạt (tấn)</label>
+              <label className="block font-medium text-slate-600 mb-1">
+                {tx(lang, 'Giao đạt Q_đạt (tấn)', '納品合格量 Q_đạt (トン)')}
+              </label>
               <input
                 type="number"
                 value={simDeliveredTons}
@@ -355,7 +407,9 @@ export function BillingPanel() {
               />
             </div>
             <div>
-              <label className="block font-medium text-slate-600 mb-1">Đơn giá P (đ/kg)</label>
+              <label className="block font-medium text-slate-600 mb-1">
+                {tx(lang, 'Đơn giá P (đ/kg)', 'サービス単価 P (VND/kg)')}
+              </label>
               <input
                 type="number"
                 value={simPrice}
@@ -364,7 +418,9 @@ export function BillingPanel() {
               />
             </div>
             <div>
-              <label className="block font-medium text-slate-600 mb-1">Bồi hoàn B (đ)</label>
+              <label className="block font-medium text-slate-600 mb-1">
+                {tx(lang, 'Bồi hoàn B (đ)', '補償控除額 B (VND)')}
+              </label>
               <input
                 type="number"
                 value={simCompB}
@@ -377,12 +433,13 @@ export function BillingPanel() {
             <div className="flex items-center gap-2 text-xs text-emerald-900">
               <Calculator className="w-4 h-4" />
               <span>
-                Tính cước trên <strong>{(simBillableKg / 1000).toLocaleString('vi-VN')} tấn</strong>
+                {tx(lang, 'Tính cước trên', '課金対象数量:')}{' '}
+                <strong>
+                  {formatNum(simBillableKg / 1000, lang)} {tx(lang, 'tấn', 'トン')}
+                </strong>
               </span>
             </div>
-            <div className="text-lg font-bold text-emerald-800">
-              {simNet.toLocaleString('vi-VN')} đ
-            </div>
+            <div className="text-lg font-bold text-emerald-800">{formatVnd(simNet, lang)}</div>
           </div>
         </Card>
       </div>

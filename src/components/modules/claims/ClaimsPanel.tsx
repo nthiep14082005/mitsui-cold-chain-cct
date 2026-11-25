@@ -3,9 +3,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Gavel, Lock, MessageSquare, ShieldAlert } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, ClaimStatusBadge } from '@/components/ui/Badge';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import {
+  displayOperationalText,
+  displayOrgName,
+  formatDateTime,
+  formatNum,
+  formatVnd,
+  PARTY_TYPE_I18N,
+  tx,
+} from '@/lib/i18n';
 import { Claim } from '@/types/claim-billing-kpi';
 import { Organization } from '@/types/common';
 
@@ -53,7 +61,8 @@ export function ClaimsPanel() {
   }, [loadData, refreshTick]);
 
   const selected = claims.find((c) => c.id === selectedId) ?? claims[0];
-  const orgName = (id?: string) => orgs.find((o) => o.id === id)?.name ?? id ?? '—';
+  const orgName = (id?: string) =>
+    id ? displayOrgName(orgs.find((o) => o.id === id)?.name ?? id, lang) : '—';
 
   const handleSelectClaim = (c: EnrichedClaim) => {
     setSelectedId(c.id);
@@ -81,8 +90,15 @@ export function ClaimsPanel() {
       }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi ra phán quyết');
-    pushToast('success', `Đã chốt phán quyết ${selected.code} và cập nhật bảng kê tháng (BR-13)`);
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi ra phán quyết', '裁定登録エラー'));
+    pushToast(
+      'success',
+      tx(
+        lang,
+        `Đã chốt phán quyết ${selected.code} và cập nhật bảng kê tháng (BR-13)`,
+        `裁定 ${selected.code} を確定し、月次精算書に反映しました (BR-13)`
+      )
+    );
     triggerRefresh();
   };
 
@@ -119,23 +135,13 @@ export function ClaimsPanel() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs font-bold text-slate-900">{c.code}</span>
-                <Badge
-                  tone={
-                    c.status === 'DA_PHAN_QUYET'
-                      ? 'emerald'
-                      : c.status === 'DA_GIAI_TRINH'
-                        ? 'blue'
-                        : 'amber'
-                  }
-                >
-                  {c.status}
-                </Badge>
+                <ClaimStatusBadge status={c.status} />
               </div>
               <div className="text-xs font-medium text-slate-700 mt-1">
-                Lô {c.lotCode} · {orgName(c.customerOrgId)}
+                {tx(lang, 'Lô', 'ロット')} {c.lotCode} · {orgName(c.customerOrgId)}
               </div>
               <div className="text-xs text-slate-500 mt-0.5">
-                Ảnh hưởng: <strong>{c.affectedKg} kg</strong>
+                {tx(lang, 'Ảnh hưởng:', '影響重量:')} <strong>{formatNum(c.affectedKg, lang)} kg</strong>
               </div>
             </button>
           ))}
@@ -144,25 +150,41 @@ export function ClaimsPanel() {
         <div className="lg:col-span-8 space-y-4">
           {selected && (
             <Card
-              title={`Hồ sơ khiếu nại ${selected.code} — Lô ${selected.lotCode}`}
-              subtitle={`Khách hàng: ${orgName(selected.customerOrgId)} · Khối lượng ảnh hưởng: ${selected.affectedKg} kg`}
+              title={tx(
+                lang,
+                `Hồ sơ khiếu nại ${selected.code} — Lô ${selected.lotCode}`,
+                `クレーム案件 ${selected.code} — ロット ${selected.lotCode}`
+              )}
+              subtitle={tx(
+                lang,
+                `Khách hàng: ${orgName(selected.customerOrgId)} · Khối lượng ảnh hưởng: ${selected.affectedKg} kg`,
+                `顧客: ${orgName(selected.customerOrgId)} · 対象重量: ${formatNum(selected.affectedKg, lang)} kg`
+              )}
             >
               <div className="space-y-4">
                 <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  {selected.description}
+                  {displayOperationalText(selected.description, lang)}
                 </p>
 
                 {/* BR-10 Automated Suggestion */}
                 <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-1.5">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
                     <ShieldAlert className="w-4 h-4 text-amber-700" />
-                    Hệ thống tự động khoanh vùng & đề xuất khâu lỗi ({selected.systemSuggestionRule})
+                    {tx(
+                      lang,
+                      `Hệ thống tự động khoanh vùng & đề xuất khâu lỗi (${selected.systemSuggestionRule})`,
+                      `システム自動分析・推定原因工程 (${selected.systemSuggestionRule})`
+                    )}
                   </div>
                   <p className="text-xs text-amber-900 leading-relaxed">
-                    {selected.systemSuggestionDetail}
+                    {displayOperationalText(selected.systemSuggestionDetail, lang)}
                   </p>
                   <div className="text-[11px] text-amber-700">
-                    Đề xuất không ràng buộc; phán quyết cuối cùng do Quản lý / QC Mitsui quyết định.
+                    {tx(
+                      lang,
+                      'Đề xuất không ràng buộc; phán quyết cuối cùng do Quản lý / QC Mitsui quyết định.',
+                      '※上記は参考提案であり、最終裁定は Mitsui マネージャー / QC が決定します。'
+                    )}
                   </div>
                 </div>
 
@@ -170,18 +192,23 @@ export function ClaimsPanel() {
                 <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1.5">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
                     <MessageSquare className="w-4 h-4 text-blue-600" />
-                    Giải trình của đối tác (Hạn 48h — FR-39)
+                    {tx(lang, 'Giải trình của đối tác (Hạn 48h — FR-39)', 'パートナー弁明書（提出期限 48時間 — FR-39）')}
                   </div>
                   {selected.partnerExplanation ? (
                     <div className="text-xs text-slate-700 space-y-1">
-                      <p>{selected.partnerExplanation.content}</p>
+                      <p>{displayOperationalText(selected.partnerExplanation.content, lang)}</p>
                       <p className="text-[11px] text-slate-400">
-                        Gửi lúc {new Date(selected.partnerExplanation.submittedAt).toLocaleString('vi-VN')}
+                        {tx(lang, 'Gửi lúc', '提出日時')}{' '}
+                        {formatDateTime(selected.partnerExplanation.submittedAt, lang)}
                       </p>
                     </div>
                   ) : (
                     <p className="text-xs text-slate-500">
-                      Chưa nhận được giải trình từ {orgName(selected.systemSuggestedOrgId)}.
+                      {tx(
+                        lang,
+                        `Chưa nhận được giải trình từ ${orgName(selected.systemSuggestedOrgId)}.`,
+                        `${orgName(selected.systemSuggestedOrgId)} からの弁明はまだ提出されていません。`
+                      )}
                     </p>
                   )}
                 </div>
@@ -191,57 +218,71 @@ export function ClaimsPanel() {
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                        <Lock className="w-4 h-4" /> Phán quyết QC đã chốt (Bất biến - NFR-06)
+                        <Lock className="w-4 h-4" />{' '}
+                        {tx(lang, 'Phán quyết QC đã chốt (Bất biến - NFR-06)', 'QC裁定確定済（改変不可 - NFR-06）')}
                       </span>
-                      <Badge tone="emerald">Đã ghi vào bảng kê tháng</Badge>
+                      <Badge tone="emerald">
+                        {tx(lang, 'Đã ghi vào bảng kê tháng', '月次精算書へ反映済')}
+                      </Badge>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-emerald-900">
                       <div>
-                        Bên chịu lỗi:{' '}
+                        {tx(lang, 'Bên chịu lỗi:', '責任帰属:')}{' '}
                         <strong>
                           {selected.decision.responsibleOrgId
                             ? orgName(selected.decision.responsibleOrgId)
-                            : selected.decision.responsiblePartyType}
+                            : PARTY_TYPE_I18N[selected.decision.responsiblePartyType]?.[lang] ??
+                              selected.decision.responsiblePartyType}
                         </strong>
                       </div>
                       <div>
-                        Bồi hoàn khách:{' '}
-                        <strong>{selected.decision.customerCompensationVnd.toLocaleString('vi-VN')} đ</strong>
+                        {tx(lang, 'Bồi hoàn khách:', '顧客補償:')}{' '}
+                        <strong>{formatVnd(selected.decision.customerCompensationVnd, lang)}</strong>
                       </div>
                       <div>
-                        Phạt SLA đối tác:{' '}
-                        <strong>{selected.decision.partnerPenaltyVnd.toLocaleString('vi-VN')} đ</strong>
+                        {tx(lang, 'Phạt SLA đối tác:', 'パートナーSLA違約金:')}{' '}
+                        <strong>{formatVnd(selected.decision.partnerPenaltyVnd, lang)}</strong>
                       </div>
                     </div>
-                    <p className="text-xs text-emerald-800">Lý do: {selected.decision.reason}</p>
+                    <p className="text-xs text-emerald-800">
+                      {tx(lang, 'Lý do:', '裁定理由:')}{' '}
+                      {displayOperationalText(selected.decision.reason, lang)}
+                    </p>
                   </div>
                 ) : (
                   <form onSubmit={handleAdjudicate} className="p-4 rounded-xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <Gavel className="w-4 h-4 text-emerald-600" /> Ra phán quyết cuối cùng (Quản lý / QC)
+                        <Gavel className="w-4 h-4 text-emerald-600" />{' '}
+                        {tx(lang, 'Ra phán quyết cuối cùng (Quản lý / QC)', '最終裁定登録（マネージャー / QC）')}
                       </h4>
                       {currentUser?.role !== 'QUAN_LY_QC' && (
-                        <Badge tone="amber">Cần vai trò Quản lý / QC để chốt</Badge>
+                        <Badge tone="amber">
+                          {tx(lang, 'Cần vai trò Quản lý / QC để chốt', '確定にはマネージャー / QC権限が必要')}
+                        </Badge>
                       )}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Bên chịu trách nhiệm</label>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          {tx(lang, 'Bên chịu trách nhiệm', '責任帰属先')}
+                        </label>
                         <select
                           value={partyType}
                           onChange={(e) => setPartyType(e.target.value as typeof partyType)}
                           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                         >
-                          <option value="DOI_TAC">Đối tác vận hành (trừ phạt SLA)</option>
-                          <option value="NGUON_HANG">Nguồn hàng (xử lý ngoài hệ thống)</option>
-                          <option value="SAU_BAN_GIAO">Sau bàn giao BG5</option>
-                          <option value="MITSUI">Mitsui chịu rủi ro</option>
+                          <option value="DOI_TAC">{PARTY_TYPE_I18N.DOI_TAC[lang]}</option>
+                          <option value="NGUON_HANG">{PARTY_TYPE_I18N.NGUON_HANG[lang]}</option>
+                          <option value="SAU_BAN_GIAO">{PARTY_TYPE_I18N.SAU_BAN_GIAO[lang]}</option>
+                          <option value="MITSUI">{PARTY_TYPE_I18N.MITSUI[lang]}</option>
                         </select>
                       </div>
                       {partyType === 'DOI_TAC' && (
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Đối tác bị phạt SLA</label>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                            {tx(lang, 'Đối tác bị phạt SLA', 'SLA違約金対象パートナー')}
+                          </label>
                           <select
                             value={respOrgId}
                             onChange={(e) => setRespOrgId(e.target.value)}
@@ -251,14 +292,16 @@ export function ClaimsPanel() {
                               .filter((o) => ['CO_SO_SO_CHE', 'KHO_LANH', 'NHA_VAN_TAI'].includes(o.type))
                               .map((o) => (
                                 <option key={o.id} value={o.id}>
-                                  {o.name}
+                                  {displayOrgName(o.name, lang)}
                                 </option>
                               ))}
                           </select>
                         </div>
                       )}
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Bồi hoàn khách (VNĐ)</label>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          {tx(lang, 'Bồi hoàn khách (VNĐ)', '顧客補償額 (VND)')}
+                        </label>
                         <input
                           type="number"
                           value={compVnd}
@@ -267,7 +310,9 @@ export function ClaimsPanel() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Phạt đối tác theo SLA (VNĐ)</label>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          {tx(lang, 'Phạt đối tác theo SLA (VNĐ)', 'パートナーSLA違約金 (VND)')}
+                        </label>
                         <input
                           type="number"
                           value={penaltyVnd}
@@ -277,12 +322,18 @@ export function ClaimsPanel() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Lý do phán quyết (bắt buộc)</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        {tx(lang, 'Lý do phán quyết (bắt buộc)', '裁定理由（必須）')}
+                      </label>
                       <textarea
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         rows={2}
-                        placeholder="Ghi rõ căn cứ biên bản bàn giao và dữ liệu nhiệt độ..."
+                        placeholder={tx(
+                          lang,
+                          'Ghi rõ căn cứ biên bản bàn giao và dữ liệu nhiệt độ...',
+                          '引渡記録および温度データの根拠を明記してください...'
+                        )}
                         className="w-full rounded-xl border border-slate-200 p-2.5 text-sm"
                         required
                       />
@@ -293,7 +344,7 @@ export function ClaimsPanel() {
                         disabled={currentUser?.role !== 'QUAN_LY_QC'}
                         className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40"
                       >
-                        Chốt phán quyết & Cập nhật bảng kê
+                        {tx(lang, 'Chốt phán quyết & Cập nhật bảng kê', '裁定を確定して精算書に反映')}
                       </button>
                     </div>
                   </form>

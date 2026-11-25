@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
+import { useCct } from '@/components/layout/CctContext';
+import { tx } from '@/lib/i18n';
 
 export function Modal({
   open,
@@ -16,6 +18,7 @@ export function Modal({
   children: React.ReactNode;
   maxWidth?: string;
 }) {
+  const { lang } = useCct();
   if (!open) return null;
 
   return (
@@ -28,7 +31,7 @@ export function Modal({
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-            aria-label="Đóng"
+            aria-label={tx(lang, 'Đóng', '閉じる')}
           >
             <X className="w-5 h-5" />
           </button>

@@ -13,20 +13,56 @@ import {
   Truck,
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
-import { Badge, LotStatusBadge } from '@/components/ui/Badge';
+import { Badge, LotStatusBadge, TripStatusBadge } from '@/components/ui/Badge';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import { displayPlace, formatNum, tx } from '@/lib/i18n';
 import { DailyOrder } from '@/types/order-plan';
 import { Lot } from '@/types/lot-epod';
 import { TempAlert, Trip } from '@/types/transport-temp';
 
 const SIX_STEPS = [
-  { step: 'B1', title: 'Tiếp nhận đơn & Kế hoạch', detail: 'Chốt trước 14:00 D-1' },
-  { step: 'B2', title: 'Kết nối HTX & Thu gom', detail: 'Xác nhận sản lượng + VietGAP' },
-  { step: 'B3', title: 'Sơ chế & Làm lạnh (BG1)', detail: 'Phân loại, dán QR, phòng mát' },
-  { step: 'B4', title: 'Kho lạnh Bến Lức (BG2–3)', detail: 'Buồng theo nhóm nhiệt, FEFO' },
-  { step: 'B5', title: 'Vận tải lạnh (BG4)', detail: 'Khóa ghép khoang BR-05, GPS' },
-  { step: 'B6', title: 'Giao khách & ePOD (BG5)', detail: 'Ghi đạt/loại, khiếu nại 24h' },
+  {
+    step: 'B1',
+    titleVi: 'Tiếp nhận đơn & Kế hoạch',
+    titleJa: '日次受注・供給計画',
+    detailVi: 'Chốt trước 14:00 D-1',
+    detailJa: 'D-1 14:00 締切',
+  },
+  {
+    step: 'B2',
+    titleVi: 'Kết nối HTX & Thu gom',
+    titleJa: '農協連携・集荷',
+    detailVi: 'Xác nhận sản lượng + VietGAP',
+    detailJa: '出荷量確定 + VietGAP',
+  },
+  {
+    step: 'B3',
+    titleVi: 'Sơ chế & Làm lạnh (BG1)',
+    titleJa: '選果・予冷 (BG1)',
+    detailVi: 'Phân loại, dán QR, phòng mát',
+    detailJa: '選別・QR貼付・予冷室',
+  },
+  {
+    step: 'B4',
+    titleVi: 'Kho lạnh Bến Lức (BG2–3)',
+    titleJa: 'ベンルック冷蔵倉庫 (BG2–3)',
+    detailVi: 'Buồng theo nhóm nhiệt, FEFO',
+    detailJa: '温度帯別保管・FEFO出庫',
+  },
+  {
+    step: 'B5',
+    titleVi: 'Vận tải lạnh (BG4)',
+    titleJa: '冷蔵配送 (BG4)',
+    detailVi: 'Khóa ghép khoang BR-05, GPS',
+    detailJa: '混載ロック BR-05・GPS',
+  },
+  {
+    step: 'B6',
+    titleVi: 'Giao khách & ePOD (BG5)',
+    titleJa: '納品・ePOD署名 (BG5)',
+    detailVi: 'Ghi đạt/loại, khiếu nại 24h',
+    detailJa: '合否検品・24hクレーム窓口',
+  },
 ];
 
 export function OverviewPanel() {
@@ -49,7 +85,11 @@ export function OverviewPanel() {
       if (!active) return;
       if (oRes.status === 403) {
         setErrorMsg(
-          'Tài khoản Quản trị hệ thống chỉ quản lý danh mục & tham số (mục Danh mục & Quản trị), không truy cập dữ liệu vận hành.'
+          tx(
+            lang,
+            'Tài khoản Quản trị hệ thống chỉ quản lý danh mục & tham số (mục Danh mục & Quản trị), không truy cập dữ liệu vận hành.',
+            'システム管理者アカウントはマスタ・パラメータ設定（マスタ・システム管理）専用であり、運用データにはアクセスできません。'
+          )
         );
         return;
       }
@@ -63,17 +103,17 @@ export function OverviewPanel() {
     return () => {
       active = false;
     };
-  }, [refreshTick, currentUser?.id]);
+  }, [refreshTick, currentUser?.id, lang]);
 
   if (errorMsg) {
     return (
-      <Card title="Phân quyền Quản trị hệ thống (FR-51 / NFR-07)">
+      <Card title={tx(lang, 'Phân quyền Quản trị hệ thống (FR-51 / NFR-07)', 'システム管理者権限分離 (FR-51 / NFR-07)')}>
         <p className="text-sm text-slate-600 mb-3">{errorMsg}</p>
         <Link
           href="/control-tower/admin"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold"
         >
-          Đi tới Danh mục & Quản trị <ArrowRight className="w-4 h-4" />
+          {tx(lang, 'Đi tới Danh mục & Quản trị', 'マスタ・システム管理へ')} <ArrowRight className="w-4 h-4" />
         </Link>
       </Card>
     );
@@ -125,30 +165,38 @@ export function OverviewPanel() {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          label="Lô đang theo dõi (thực địa)"
+          label={tx(lang, 'Lô đang theo dõi (thực địa)', '追跡中ロット（現場）')}
           value={dailyPilotLots.length}
-          sub={`${(todayVolumeKg / 1000).toFixed(1)} tấn mẫu vận hành`}
+          sub={tx(
+            lang,
+            `${(todayVolumeKg / 1000).toFixed(1)} tấn mẫu vận hành`,
+            `運用サンプル ${(todayVolumeKg / 1000).toFixed(1)} トン`
+          )}
           tone="emerald"
           icon={<Package className="w-4 h-4" />}
         />
         <StatCard
-          label="Đơn phát sinh chờ duyệt"
+          label={tx(lang, 'Đơn phát sinh chờ duyệt', '締切後追加注文（承認待ち）')}
           value={adHocCount}
-          sub="Gửi sau giờ chốt 14:00 D-1"
+          sub={tx(lang, 'Gửi sau giờ chốt 14:00 D-1', 'D-1 14:00 締切後の受付分')}
           tone={adHocCount > 0 ? 'amber' : 'default'}
           icon={<ClipboardList className="w-4 h-4" />}
         />
         <StatCard
-          label="Cảnh báo nhiệt / mất sóng"
+          label={tx(lang, 'Cảnh báo nhiệt / mất sóng', '温度逸脱・通信途絶アラート')}
           value={openAlerts}
-          sub={`${alerts.length} tổng cảnh báo ghi nhận`}
+          sub={tx(lang, `${alerts.length} tổng cảnh báo ghi nhận`, `累計記録アラート ${alerts.length} 件`)}
           tone={openAlerts > 0 ? 'rose' : 'default'}
           icon={<AlertTriangle className="w-4 h-4" />}
         />
         <StatCard
-          label="Chuyến đang lăn bánh"
+          label={tx(lang, 'Chuyến đang lăn bánh', '運行中の配送便')}
           value={activeTrips.length}
-          sub={`${trips.filter((t) => t.isLateEta).length} chuyến cảnh báo trễ ETA`}
+          sub={tx(
+            lang,
+            `${trips.filter((t) => t.isLateEta).length} chuyến cảnh báo trễ ETA`,
+            `ETA遅延警告 ${trips.filter((t) => t.isLateEta).length} 便`
+          )}
           tone="blue"
           icon={<Truck className="w-4 h-4" />}
         />
@@ -156,8 +204,12 @@ export function OverviewPanel() {
 
       {/* 6 Steps & 5 Handovers Flow */}
       <Card
-        title="Luồng vận hành 6 bước & 5 điểm bàn giao ePOD"
-        subtitle="Mỗi lần đổi tay sinh ra một biên bản ePOD bất biến và chuyển trách nhiệm bảo quản (BR-08)"
+        title={tx(lang, 'Luồng vận hành 6 bước & 5 điểm bàn giao ePOD', '6ステップ運用フロー・5段階 ePOD 引渡管理')}
+        subtitle={tx(
+          lang,
+          'Mỗi lần đổi tay sinh ra một biên bản ePOD bất biến và chuyển trách nhiệm bảo quản (BR-08)',
+          '拠点間の引渡ごとに改変不可の ePOD 記録が発行され、保管責任が移転します (BR-08)'
+        )}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           {SIX_STEPS.map((st, idx) => (
@@ -174,8 +226,12 @@ export function OverviewPanel() {
                     <ArrowRight className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
                   )}
                 </div>
-                <div className="text-xs font-bold text-slate-900">{st.title}</div>
-                <div className="text-[11px] text-slate-500 mt-1">{st.detail}</div>
+                <div className="text-xs font-bold text-slate-900">
+                  {lang === 'ja' ? st.titleJa : st.titleVi}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-1">
+                  {lang === 'ja' ? st.detailJa : st.detailVi}
+                </div>
               </div>
             </div>
           ))}
@@ -185,13 +241,13 @@ export function OverviewPanel() {
       {/* Corridor Live Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card
-          title="Chuyến đang hoạt động trên hành lang"
+          title={tx(lang, 'Chuyến đang hoạt động trên hành lang', '回廊上の稼働中輸送便')}
           action={
             <Link
               href="/control-tower/warehouse-transport"
               className="text-xs font-semibold text-emerald-700 hover:underline"
             >
-              Điều phối chi tiết →
+              {tx(lang, 'Điều phối chi tiết →', '配車詳細へ →')}
             </Link>
           }
         >
@@ -204,15 +260,18 @@ export function OverviewPanel() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-mono text-xs font-bold text-slate-900">{trip.code}</div>
                   <div className="flex items-center gap-1.5">
-                    {trip.isLateEta && <Badge tone="rose">Trễ ETA (FR-25)</Badge>}
-                    <Badge tone={trip.status === 'DANG_CHAY' ? 'blue' : 'emerald'}>
-                      {trip.status}
-                    </Badge>
+                    {trip.isLateEta && <Badge tone="rose">{tx(lang, 'Trễ ETA (FR-25)', 'ETA遅延 (FR-25)')}</Badge>}
+                    <TripStatusBadge status={trip.status} />
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                  <span>Tải: <strong>{trip.totalWeightKg.toLocaleString('vi-VN')} kg</strong> ({trip.fillRatePct}%)</span>
-                  <span>Số lô: <strong>{trip.assignments.length}</strong></span>
+                  <span>
+                    {tx(lang, 'Tải:', '積載:')}{' '}
+                    <strong>{formatNum(trip.totalWeightKg, lang)} kg</strong> ({trip.fillRatePct}%)
+                  </span>
+                  <span>
+                    {tx(lang, 'Số lô:', 'ロット数:')} <strong>{trip.assignments.length}</strong>
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {trip.stops.map((s) => (
@@ -229,7 +288,7 @@ export function OverviewPanel() {
                       ) : (
                         <MapPin className="w-3 h-3" />
                       )}
-                      {s.locationName}
+                      {displayPlace(s.locationName, lang)}
                     </span>
                   ))}
                 </div>
@@ -239,13 +298,13 @@ export function OverviewPanel() {
         </Card>
 
         <Card
-          title="Lô hàng gần đây trong chuỗi"
+          title={tx(lang, 'Lô hàng gần đây trong chuỗi', 'チェーン内の最新ロット')}
           action={
             <Link
               href="/control-tower/lots"
               className="text-xs font-semibold text-emerald-700 hover:underline"
             >
-              Xem tất cả →
+              {tx(lang, 'Xem tất cả →', 'すべて表示 →')}
             </Link>
           }
         >
@@ -269,11 +328,11 @@ export function OverviewPanel() {
                       <Badge tone="amber">10–13°C</Badge>
                     )}
                     {(lot.hasTempAlert || lot.hasDataGap) && (
-                      <Badge tone="rose">Cảnh báo</Badge>
+                      <Badge tone="rose">{tx(lang, 'Cảnh báo', 'アラート')}</Badge>
                     )}
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5 truncate">
-                    {lot.growingArea} · {lot.currentKg.toLocaleString('vi-VN')} kg
+                    {displayPlace(lot.growingArea, lang)} · {formatNum(lot.currentKg, lang)} kg
                   </div>
                 </div>
                 <LotStatusBadge status={lot.status} />

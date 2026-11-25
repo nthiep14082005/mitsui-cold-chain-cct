@@ -6,10 +6,11 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { usePathname } from 'next/navigation';
-import { Lang } from '@/lib/i18n';
+import { displayUserName, Lang, translateApiMessage, tx } from '@/lib/i18n';
 import { NotificationItem, Organization, User, UserRole } from '@/types/common';
 
 export interface DemoUserSummary {
@@ -81,13 +82,17 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   // SSR-safe initial locale 'vi'; hydrated from localStorage inside useEffect
   const [lang, setLangState] = useState<Lang>('vi');
+  const langRef = useRef<Lang>('vi');
+  langRef.current = lang;
+
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const pushToast = useCallback((type: ToastMessage['type'], text: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    setToasts((prev) => [...prev, { id, type, text }]);
+    const localized = translateApiMessage(text, langRef.current);
+    setToasts((prev) => [...prev, { id, type, text: localized }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
@@ -98,6 +103,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setLang = useCallback((next: Lang) => {
+    langRef.current = next;
     setLangState(next);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
@@ -107,6 +113,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
   const toggleLang = useCallback(() => {
     setLangState((prev) => {
       const next: Lang = prev === 'vi' ? 'ja' : 'vi';
+      langRef.current = next;
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
       }
@@ -153,6 +160,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       const savedLang = window.localStorage.getItem(LOCALE_STORAGE_KEY);
       if (savedLang === 'ja' || savedLang === 'vi') {
+        langRef.current = savedLang;
         setLangState(savedLang);
       }
     }
@@ -195,14 +203,22 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ mode, userId }),
       });
       const data = await res.json();
+      const curLang = langRef.current;
       if (res.ok) {
         setCurrentUser(data.currentUser);
         setCurrentOrg(data.currentOrg);
         setIsAuthenticated(Boolean(data.isAuthenticated));
-        pushToast('info', `Đã chuyển / 切替完了: ${data.currentUser?.name}`);
+        const nameDisplay = displayUserName(data.currentUser?.name ?? '', curLang);
+        pushToast(
+          'info',
+          tx(curLang, `Đã chuyển sang: ${nameDisplay}`, `アカウントを切替ました: ${nameDisplay}`)
+        );
         triggerRefresh();
       } else {
-        pushToast('error', data.error || 'Không thể chuyển vai trò.');
+        pushToast(
+          'error',
+          data.error || tx(curLang, 'Không thể chuyển vai trò.', 'ロール切替に失敗しました。')
+        );
       }
     },
     [channel, pushToast, triggerRefresh]
@@ -218,7 +234,7 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(null);
       setCurrentOrg(null);
       setIsAuthenticated(false);
-      pushToast('info', 'Đã đăng xuất / ログアウトしました');
+      pushToast('info', tx(langRef.current, 'Đã đăng xuất', 'ログアウトしました'));
     },
     [pushToast]
   );
@@ -237,13 +253,24 @@ export function CctProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      const curLang = langRef.current;
       if (!res.ok) {
-        return { ok: false, error: data.error || 'Đăng nhập thất bại.' };
+        return {
+          ok: false,
+          error: translateApiMessage(
+            data.error || tx(curLang, 'Đăng nhập thất bại.', 'ログインに失敗しました。'),
+            curLang
+          ),
+        };
       }
       setCurrentUser(data.currentUser);
       setCurrentOrg(data.currentOrg);
       setIsAuthenticated(true);
-      pushToast('success', `Đăng nhập thành công / ログイン成功: ${data.currentUser?.name}`);
+      const nameDisplay = displayUserName(data.currentUser?.name ?? '', curLang);
+      pushToast(
+        'success',
+        tx(curLang, `Đăng nhập thành công: ${nameDisplay}`, `ログイン成功: ${nameDisplay}`)
+      );
       triggerRefresh();
       return { ok: true };
     },

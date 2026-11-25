@@ -2,7 +2,11 @@
 
 import React from 'react';
 import { UserCheck } from 'lucide-react';
-import { ROLE_LABELS_I18N } from '@/lib/i18n';
+import {
+  displayOrgName,
+  displayUserName,
+  ROLE_LABELS_I18N,
+} from '@/lib/i18n';
 import { useCct } from './CctContext';
 
 export function RoleSwitcher({ compact = false }: { compact?: boolean }) {
@@ -27,13 +31,15 @@ export function RoleSwitcher({ compact = false }: { compact?: boolean }) {
         onChange={(e) => {
           if (e.target.value) switchUser(e.target.value);
         }}
-        className="text-xs sm:text-sm font-medium bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-[165px] sm:max-w-[250px]"
+        className="text-xs sm:text-sm font-medium bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-[165px] sm:max-w-[260px]"
       >
         {scopedUsers.map((u) => {
           const roleText = ROLE_LABELS_I18N[u.role]?.[lang] ?? u.role;
+          const userDisplay = displayUserName(u.name, lang);
+          const orgDisplay = displayOrgName(u.orgName, lang);
           return (
             <option key={u.id} value={u.id}>
-              {channel === 'customer' ? u.orgName : `${roleText} — ${u.name}`}
+              {channel === 'customer' ? orgDisplay : `${roleText} — ${userDisplay}`}
             </option>
           );
         })}

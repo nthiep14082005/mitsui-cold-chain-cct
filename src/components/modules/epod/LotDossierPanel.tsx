@@ -17,7 +17,18 @@ import { Badge, LotStatusBadge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { QrCodeModal } from '@/components/ui/QrCodeModal';
 import { useCct } from '@/components/layout/CctContext';
-import { tx } from '@/lib/i18n';
+import {
+  displayOperationalText,
+  displayOrgName,
+  displayPlace,
+  displayProductName,
+  displayTempGroupName,
+  formatDateTime,
+  formatNum,
+  formatTime,
+  LOT_STATUS_I18N,
+  tx,
+} from '@/lib/i18n';
 import { LOT_STATUS_ORDER } from '@/domain/lot-lifecycle';
 import { LotDossier } from '@/domain/claim';
 import { EpodAdjustment, Lot } from '@/types/lot-epod';
@@ -87,17 +98,22 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
     if (selectedLotId) loadDossier(selectedLotId);
   }, [selectedLotId, loadDossier, refreshTick]);
 
-  const orgName = (id?: string) => orgs.find((o) => o.id === id)?.name ?? id ?? '—';
+  const orgName = (id?: string) =>
+    id ? displayOrgName(orgs.find((o) => o.id === id)?.name ?? id, lang) : '—';
   const prod = (id?: string) => products.find((p) => p.id === id);
   const tg = (id?: string) => tempGroups.find((t) => t.id === id);
 
   const filteredLots = lots.filter((l) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
+    const rawName = prod(l.productId)?.name ?? '';
+    const jaName = displayProductName(rawName, 'ja');
     return (
       l.lotCode.toLowerCase().includes(q) ||
-      (prod(l.productId)?.name.toLowerCase().includes(q) ?? false) ||
-      l.growingArea.toLowerCase().includes(q)
+      rawName.toLowerCase().includes(q) ||
+      jaName.toLowerCase().includes(q) ||
+      l.growingArea.toLowerCase().includes(q) ||
+      displayPlace(l.growingArea, 'ja').toLowerCase().includes(q)
     );
   });
 
@@ -124,8 +140,15 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
       }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi tách lô');
-    pushToast('success', 'Đã tách lô thành 2 lô con giữ nguyên lịch sử gốc (BR-06)');
+    if (!res.ok) return pushToast('error', data.error || tx(lang, 'Lỗi tách lô', 'ロット分割エラー'));
+    pushToast(
+      'success',
+      tx(
+        lang,
+        'Đã tách lô thành 2 lô con giữ nguyên lịch sử gốc (BR-06)',
+        '元の履歴を継承した2つの子ロットへ分割しました (BR-06)'
+      )
+    );
     setSplitOpen(false);
     triggerRefresh();
   };
@@ -143,8 +166,19 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
       }),
     });
     const data = await res.json();
-    if (!res.ok) return pushToast('error', data.error || 'Lỗi tạo biên bản điều chỉnh');
-    pushToast('success', 'Đã tạo Biên bản điều chỉnh liên kết ePOD gốc (FR-34, NFR-06)');
+    if (!res.ok)
+      return pushToast(
+        'error',
+        data.error || tx(lang, 'Lỗi tạo biên bản điều chỉnh', '訂正記録作成エラー')
+      );
+    pushToast(
+      'success',
+      tx(
+        lang,
+        'Đã tạo Biên bản điều chỉnh liên kết ePOD gốc (FR-34, NFR-06)',
+        '原ePODに紐付く訂正記録を作成しました (FR-34, NFR-06)'
+      )
+    );
     setAdjEpodId(null);
     setAdjReason('');
     triggerRefresh();
@@ -152,13 +186,9 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
 
   const chartData =
     dossier?.tempCompliance.points.map((p) => ({
-      time: new Date(p.timestamp).toLocaleTimeString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Ho_Chi_Minh',
-      }),
+      time: formatTime(p.timestamp, lang),
       tempC: p.tempC,
-      stage: p.locationLabel,
+      stage: displayPlace(p.locationLabel, lang),
     })) ?? [];
 
   const activeTg = tg(dossier?.lot.tempGroupId);
@@ -191,7 +221,11 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm mã lô, mặt hàng, vùng trồng..."
+              placeholder={tx(
+                lang,
+                'Tìm mã lô, mặt hàng, vùng trồng...',
+                'ロット番号・品目・産地で検索...'
+              )}
               className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm"
             />
           </div>
@@ -211,12 +245,21 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                   <LotStatusBadge status={l.status} />
                 </div>
                 <div className="text-xs font-medium text-slate-700 mt-1">
-                  {prod(l.productId)?.name} · {l.currentKg.toLocaleString('vi-VN')} kg
+                  {displayProductName(prod(l.productId)?.name ?? l.productId, lang)} ·{' '}
+                  {formatNum(l.currentKg, lang)} kg
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {l.parentLotId && <Badge tone="purple">Lô con tách</Badge>}
-                  {l.childLotIds.length > 0 && <Badge tone="purple">Đã tách ({l.childLotIds.length})</Badge>}
-                  {(l.hasTempAlert || l.hasDataGap) && <Badge tone="rose">Có cảnh báo</Badge>}
+                  {l.parentLotId && (
+                    <Badge tone="purple">{tx(lang, 'Lô con tách', '分割子ロット')}</Badge>
+                  )}
+                  {l.childLotIds.length > 0 && (
+                    <Badge tone="purple">
+                      {tx(lang, `Đã tách (${l.childLotIds.length})`, `分割済 (${l.childLotIds.length})`)}
+                    </Badge>
+                  )}
+                  {(l.hasTempAlert || l.hasDataGap) && (
+                    <Badge tone="rose">{tx(lang, 'Có cảnh báo', 'アラート有')}</Badge>
+                  )}
                 </div>
               </button>
             ))}
@@ -233,25 +276,27 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                     <span className="font-mono">{dossier.lot.lotCode}</span>
                     <LotStatusBadge status={dossier.lot.status} />
                     <Badge tone={dossier.lot.tempGroupId === 'TG-LANH' ? 'blue' : 'amber'}>
-                      <Snowflake className="w-3 h-3" /> {activeTg?.name}
+                      <Snowflake className="w-3 h-3" />{' '}
+                      {displayTempGroupName(activeTg?.name ?? dossier.lot.tempGroupId, lang)}
                     </Badge>
                   </div>
                 }
-                subtitle={`${prod(dossier.lot.productId)?.name} · Nguồn: ${orgName(dossier.lot.supplierOrgId)} (${dossier.lot.growingArea}) · Bên giữ hiện tại: ${orgName(dossier.lot.currentCustodianOrgId)}`}
+                subtitle={`${displayProductName(prod(dossier.lot.productId)?.name ?? dossier.lot.productId, lang)} · ${tx(lang, 'Nguồn:', '産地:')} ${orgName(dossier.lot.supplierOrgId)} (${displayPlace(dossier.lot.growingArea, lang)}) · ${tx(lang, 'Bên giữ hiện tại:', '現在保管者:')} ${orgName(dossier.lot.currentCustodianOrgId)}`}
                 action={
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setQrOpen(true)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold hover:bg-slate-50"
                     >
-                      <QrCode className="w-3.5 h-3.5" /> Xem / In QR
+                      <QrCode className="w-3.5 h-3.5" /> {tx(lang, 'Xem / In QR', 'QR表示・印刷')}
                     </button>
                     {dossier.lot.currentKg > 1 && dossier.lot.childLotIds.length === 0 && (
                       <button
                         onClick={handleOpenSplit}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
                       >
-                        <GitFork className="w-3.5 h-3.5" /> Tách lô con (BR-06)
+                        <GitFork className="w-3.5 h-3.5" />{' '}
+                        {tx(lang, 'Tách lô con (BR-06)', '子ロット分割 (BR-06)')}
                       </button>
                     )}
                   </div>
@@ -274,7 +319,7 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                               : 'bg-slate-50 text-slate-400 border-slate-200'
                         }`}
                       >
-                        {st}
+                        {LOT_STATUS_I18N[st]?.[lang] ?? st}
                       </div>
                     );
                   })}
@@ -282,19 +327,28 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
 
                 {dossier.lot.parentLotId && (
                   <div className="text-xs bg-purple-50 border border-purple-200 text-purple-800 rounded-xl p-2.5 mb-3">
-                    Lô con tách từ lô gốc ID <strong>{dossier.lot.parentLotId}</strong> — kế thừa toàn bộ biên bản & đường nhiệt độ trước khi tách.
+                    {tx(
+                      lang,
+                      `Lô con tách từ lô gốc ID ${dossier.lot.parentLotId} — kế thừa toàn bộ biên bản & đường nhiệt độ trước khi tách.`,
+                      `親ロット ID ${dossier.lot.parentLotId} から分割された子ロット — 分割前の全記録・温度ログを継承。`
+                    )}
                   </div>
                 )}
 
                 <div className="text-xs bg-slate-50 border border-slate-200 rounded-xl p-3">
-                  <strong>Đánh giá tự động BR-10:</strong> {dossier.suggestion.detail}
+                  <strong>{tx(lang, 'Đánh giá tự động BR-10:', 'BR-10 自動診断結果:')}</strong>{' '}
+                  {displayOperationalText(dossier.suggestion.detail, lang)}
                 </div>
               </Card>
 
               {/* Continuous Temperature Chart (BG1 -> BG5) */}
               <Card
-                title="Đường nhiệt độ liên tục BG1 → BG5 (FR-27)"
-                subtitle={`Tuân thủ dải: ${dossier.tempCompliance.inRangePct}% (${dossier.tempCompliance.inRangeMinutes}/${dossier.tempCompliance.totalMinutes} phút)`}
+                title={tx(lang, 'Đường nhiệt độ liên tục BG1 → BG5 (FR-27)', '連続温度推移グラフ BG1 → BG5 (FR-27)')}
+                subtitle={tx(
+                  lang,
+                  `Tuân thủ dải: ${dossier.tempCompliance.inRangePct}% (${dossier.tempCompliance.inRangeMinutes}/${dossier.tempCompliance.totalMinutes} phút)`,
+                  `温度帯遵守率: ${dossier.tempCompliance.inRangePct}% (${dossier.tempCompliance.inRangeMinutes}/${dossier.tempCompliance.totalMinutes} 分)`
+                )}
               >
                 {chartData.length > 0 ? (
                   <div className="h-64 w-full">
@@ -315,7 +369,7 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                         <Line
                           type="monotone"
                           dataKey="tempC"
-                          name="Nhiệt độ (°C)"
+                          name={tx(lang, 'Nhiệt độ (°C)', '温度 (°C)')}
                           stroke="#2563eb"
                           strokeWidth={2}
                           dot={false}
@@ -325,15 +379,23 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                   </div>
                 ) : (
                   <p className="text-xs text-slate-500 py-6 text-center">
-                    Chưa có dữ liệu logger gắn với các chặng của lô này.
+                    {tx(
+                      lang,
+                      'Chưa có dữ liệu logger gắn với các chặng của lô này.',
+                      'このロットの各区間に紐付くLoggerデータがまだありません。'
+                    )}
                   </p>
                 )}
               </Card>
 
               {/* 5 ePOD Handover Cards */}
               <Card
-                title="Chuỗi biên bản bàn giao điện tử ePOD (BG1–BG5)"
-                subtitle="Bản ghi gốc bất biến (NFR-06). Sai sót chỉ xử lý bằng Biên bản điều chỉnh có xác nhận 2 bên (FR-34)."
+                title={tx(lang, 'Chuỗi biên bản bàn giao điện tử ePOD (BG1–BG5)', '電子引渡記録チェーン ePOD (BG1–BG5)')}
+                subtitle={tx(
+                  lang,
+                  'Bản ghi gốc bất biến (NFR-06). Sai sót chỉ xử lý bằng Biên bản điều chỉnh có xác nhận 2 bên (FR-34).',
+                  '原記録は改変不可 (NFR-06)。修正が必要な場合は双方合意の訂正記録 (FR-34) を追加します。'
+                )}
               >
                 <div className="space-y-3">
                   {dossier.epods.map((ep) => (
@@ -350,12 +412,14 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                             {orgName(ep.senderOrgId)} → {orgName(ep.receiverOrgId)}
                           </span>
                           {ep.lotId !== dossier.lot.id && (
-                            <Badge tone="purple">Kế thừa từ lô gốc</Badge>
+                            <Badge tone="purple">
+                              {tx(lang, 'Kế thừa từ lô gốc', '親ロットから継承')}
+                            </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge tone="slate">
-                            <Lock className="w-3 h-3" /> Bất biến
+                            <Lock className="w-3 h-3" /> {tx(lang, 'Bất biến', '改変不可')}
                           </Badge>
                           <button
                             onClick={() => {
@@ -365,15 +429,16 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-medium hover:bg-slate-100"
                           >
-                            <FileEdit className="w-3 h-3" /> Điều chỉnh (FR-34)
+                            <FileEdit className="w-3 h-3" />{' '}
+                            {tx(lang, 'Điều chỉnh (FR-34)', '訂正記録 (FR-34)')}
                           </button>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                         <div>
-                          <span className="text-slate-400">Khối lượng:</span>{' '}
-                          <strong>{ep.effective.actualKg.toLocaleString('vi-VN')} kg</strong>
+                          <span className="text-slate-400">{tx(lang, 'Khối lượng:', '重量:')}</span>{' '}
+                          <strong>{formatNum(ep.effective.actualKg, lang)} kg</strong>
                           {ep.variancePct !== undefined && (
                             <span
                               className={`ml-1 ${
@@ -385,40 +450,51 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
                           )}
                         </div>
                         <div>
-                          <span className="text-slate-400">Nhiệt độ BG:</span>{' '}
+                          <span className="text-slate-400">{tx(lang, 'Nhiệt độ BG:', '引渡温度:')}</span>{' '}
                           <strong className={ep.tempOutOfRange ? 'text-rose-600' : 'text-emerald-700'}>
                             {ep.effective.measuredTempC}°C
                           </strong>
                         </div>
                         {ep.stage === 'BG5' && (
                           <div>
-                            <span className="text-slate-400">Đạt / Loại:</span>{' '}
+                            <span className="text-slate-400">{tx(lang, 'Đạt / Loại:', '合格 / 不合格:')}</span>{' '}
                             <strong>
-                              {ep.effective.acceptedKg ?? ep.effective.actualKg} / {ep.effective.rejectedKg ?? 0} kg
+                              {formatNum(ep.effective.acceptedKg ?? ep.effective.actualKg, lang)} /{' '}
+                              {formatNum(ep.effective.rejectedKg ?? 0, lang)} kg
                             </strong>
                           </div>
                         )}
                         <div>
-                          <span className="text-slate-400">Thời điểm ghi:</span>{' '}
-                          <span>{new Date(ep.recordedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span>
+                          <span className="text-slate-400">{tx(lang, 'Thời điểm ghi:', '記録日時:')}</span>{' '}
+                          <span>{formatDateTime(ep.recordedAt, lang)}</span>
                         </div>
                       </div>
 
                       {ep.varianceReason && (
                         <div className="text-xs text-amber-800 bg-amber-50 rounded-lg px-2.5 py-1.5">
-                          Lý do chênh lệch: {ep.varianceReason}
+                          {tx(lang, 'Lý do chênh lệch:', '差異理由:')}{' '}
+                          {displayOperationalText(ep.varianceReason, lang)}
                         </div>
                       )}
                       {ep.effective.adjustmentCount > 0 && (
                         <div className="text-xs text-purple-800 bg-purple-50 rounded-lg px-2.5 py-1.5">
-                          Đã áp dụng {ep.effective.adjustmentCount} biên bản điều chỉnh: {ep.effective.latestAdjustmentReason}
+                          {tx(
+                            lang,
+                            `Đã áp dụng ${ep.effective.adjustmentCount} biên bản điều chỉnh:`,
+                            `${ep.effective.adjustmentCount} 件の訂正記録を適用済:`
+                          )}{' '}
+                          {displayOperationalText(ep.effective.latestAdjustmentReason ?? '', lang)}
                         </div>
                       )}
                     </div>
                   ))}
                   {adjustments.length > 0 && (
                     <div className="text-xs text-slate-500">
-                      Tổng cộng {adjustments.length} biên bản điều chỉnh được lưu vết cho lô này.
+                      {tx(
+                        lang,
+                        `Tổng cộng ${adjustments.length} biên bản điều chỉnh được lưu vết cho lô này.`,
+                        `このロットには合計 ${adjustments.length} 件の訂正記録が保存されています。`
+                      )}
                     </div>
                   )}
                 </div>
@@ -426,7 +502,13 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
             </>
           ) : (
             <Card>
-              <p className="text-sm text-slate-500">Chọn một lô hàng ở danh sách bên trái để xem hồ sơ.</p>
+              <p className="text-sm text-slate-500">
+                {tx(
+                  lang,
+                  'Chọn một lô hàng ở danh sách bên trái để xem hồ sơ.',
+                  '左側のリストからロットを選択すると詳細が表示されます。'
+                )}
+              </p>
             </Card>
           )}
         </div>
@@ -450,17 +532,24 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
       <Modal
         open={splitOpen}
         onClose={() => setSplitOpen(false)}
-        title={`Tách lô ${dossier?.lot.lotCode ?? ''}`}
+        title={tx(lang, `Tách lô ${dossier?.lot.lotCode ?? ''}`, `ロット分割 ${dossier?.lot.lotCode ?? ''}`)}
         maxWidth="max-w-md"
       >
         <form onSubmit={handleSplitSubmit} className="space-y-3">
           <p className="text-xs text-slate-600">
-            Khối lượng hiện tại: <strong>{dossier?.lot.currentKg} kg</strong>. Lô con sẽ giữ liên kết{' '}
-            <code>parentLotId</code> và toàn bộ lịch sử trước khi tách (BR-06).
+            {tx(lang, 'Khối lượng hiện tại:', '現在重量:')}{' '}
+            <strong>{dossier?.lot.currentKg} kg</strong>.{' '}
+            {tx(
+              lang,
+              'Lô con sẽ giữ liên kết parentLotId và toàn bộ lịch sử trước khi tách (BR-06).',
+              '子ロットは parentLotId リンクと分割前の全履歴を継承します (BR-06)。'
+            )}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Lô con A (kg)</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Lô con A (kg)', '子ロット A (kg)')}
+              </label>
               <input
                 type="number"
                 value={splitKgA}
@@ -470,7 +559,9 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Lô con B (kg)</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Lô con B (kg)', '子ロット B (kg)')}
+              </label>
               <input
                 type="number"
                 value={splitKgB}
@@ -486,13 +577,13 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
               onClick={() => setSplitOpen(false)}
               className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold"
             >
-              Hủy
+              {tx(lang, 'Hủy', 'キャンセル')}
             </button>
             <button
               type="submit"
               className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold"
             >
-              Xác nhận tách lô
+              {tx(lang, 'Xác nhận tách lô', '分割を確定')}
             </button>
           </div>
         </form>
@@ -502,16 +593,22 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
       <Modal
         open={Boolean(adjEpodId)}
         onClose={() => setAdjEpodId(null)}
-        title="Tạo Biên bản điều chỉnh ePOD (FR-34, NFR-06)"
+        title={tx(lang, 'Tạo Biên bản điều chỉnh ePOD (FR-34, NFR-06)', 'ePOD 訂正記録を作成 (FR-34, NFR-06)')}
         maxWidth="max-w-md"
       >
         <form onSubmit={handleAdjSubmit} className="space-y-3">
           <p className="text-xs text-slate-500">
-            Bản ghi gốc không thể bị sửa. Hệ thống sẽ lưu thêm biên bản điều chỉnh có xác nhận 2 bên và nhật ký kiểm toán.
+            {tx(
+              lang,
+              'Bản ghi gốc không thể bị sửa. Hệ thống sẽ lưu thêm biên bản điều chỉnh có xác nhận 2 bên và nhật ký kiểm toán.',
+              '原記録は変更できません。双方確認済の訂正記録と監査ログを新規追加します。'
+            )}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Khối lượng mới (kg)</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Khối lượng mới (kg)', '訂正後重量 (kg)')}
+              </label>
               <input
                 type="number"
                 step="0.1"
@@ -522,7 +619,9 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Nhiệt độ mới (°C)</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {tx(lang, 'Nhiệt độ mới (°C)', '訂正後温度 (°C)')}
+              </label>
               <input
                 type="number"
                 step="0.1"
@@ -534,12 +633,18 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Lý do điều chỉnh</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              {tx(lang, 'Lý do điều chỉnh', '訂正理由')}
+            </label>
             <textarea
               value={adjReason}
               onChange={(e) => setAdjReason(e.target.value)}
               rows={3}
-              placeholder="VD: Cân lại phát hiện sai số đầu cân tại điểm bàn giao..."
+              placeholder={tx(
+                lang,
+                'VD: Cân lại phát hiện sai số đầu cân tại điểm bàn giao...',
+                '例: 引渡地点での再計量により秤の誤差が判明したため...'
+              )}
               className="w-full rounded-xl border border-slate-200 p-2.5 text-sm"
               required
             />
@@ -550,13 +655,13 @@ export function LotDossierPanel({ initialLotId }: { initialLotId?: string }) {
               onClick={() => setAdjEpodId(null)}
               className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold"
             >
-              Đóng
+              {tx(lang, 'Đóng', '閉じる')}
             </button>
             <button
               type="submit"
               className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold"
             >
-              Lưu biên bản điều chỉnh
+              {tx(lang, 'Lưu biên bản điều chỉnh', '訂正記録を保存')}
             </button>
           </div>
         </form>
