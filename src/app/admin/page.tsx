@@ -1,4 +1,4 @@
-import { AdminLoginCard } from '@/components/auth/AdminLoginCard';
+import { redirect } from 'next/navigation';
 
 export default async function AdminLoginPage({
   searchParams,
@@ -6,5 +6,9 @@ export default async function AdminLoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const sp = await searchParams;
-  return <AdminLoginCard nextUrl={sp.next || '/control-tower/admin'} />;
+  const target =
+    sp.next && sp.next.startsWith('/control-tower')
+      ? sp.next
+      : '/control-tower/admin';
+  redirect(target);
 }

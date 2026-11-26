@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   Activity,
   BarChart3,
@@ -11,8 +11,6 @@ import {
   ClipboardCheck,
   FileSpreadsheet,
   LayoutDashboard,
-  LogIn,
-  LogOut,
   Menu,
   Package,
   QrCode,
@@ -50,16 +48,13 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const {
     currentUser,
     currentOrg,
-    isAuthenticated,
     lang,
     notifications,
     markNotificationRead,
     switchUser,
-    logout,
   } = useCct();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -82,7 +77,6 @@ export function AppShell({
 
   const customerNav: NavItem[] = [
     { href: '/customer', label: t('customerOrdersTrack', lang), icon: <Building2 className="w-4 h-4" /> },
-    { href: '/customer/login', label: t('customerLoginNav', lang), icon: <LogIn className="w-4 h-4" /> },
   ];
 
   const fieldNav: NavItem[] = [
@@ -103,18 +97,6 @@ export function AppShell({
       : channel === 'field-app'
         ? '/field-app'
         : '/customer';
-
-  const handleLogout = async () => {
-    if (channel === 'control-tower') {
-      await logout('admin');
-      router.push('/admin');
-    } else if (channel === 'customer') {
-      await logout('customer');
-      router.push('/customer/login');
-    } else {
-      await logout('field');
-    }
-  };
 
   const showSysAdminOpsBanner =
     channel === 'control-tower' &&
@@ -326,44 +308,14 @@ export function AppShell({
             <LangToggle />
 
             {channel === 'customer' && (
-              <>
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-semibold hover:bg-amber-100 whitespace-nowrap"
-                  title={tx(lang, 'Chuyển sang cổng đăng nhập Admin', 'Adminポータルへ移動')}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{t('adminPortal', lang)}</span>
-                </Link>
-                {!isAuthenticated ? (
-                  <Link
-                    href="/customer/login"
-                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 whitespace-nowrap"
-                  >
-                    <LogIn className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{t('loginRegister', lang)}</span>
-                  </Link>
-                ) : (
-                  <button
-                    onClick={handleLogout}
-                    className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50 whitespace-nowrap"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{t('logout', lang)}</span>
-                  </button>
-                )}
-              </>
-            )}
-
-            {channel === 'control-tower' && (
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50 whitespace-nowrap"
-                title={t('logout', lang)}
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-semibold hover:bg-amber-100 whitespace-nowrap"
+                title={tx(lang, 'Chuyển sang Control Tower / Admin', 'Control Tower / Adminへ移動')}
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t('logout', lang)}</span>
-              </button>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{t('adminPortal', lang)}</span>
+              </Link>
             )}
 
             {/* Notifications */}

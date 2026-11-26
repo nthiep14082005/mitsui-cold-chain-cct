@@ -13,10 +13,8 @@
 
 | Cổng / Chức năng | Đường dẫn | Đối tượng sử dụng | Ghi chú |
 | :--- | :--- | :--- | :--- |
-| **Cổng Khách hàng B2B (Trang chính)** | `/` và `/customer` | Khách hàng B2B (BHX, Saigon Co.op, WinCommerce) | Truy cập link gốc `/` tự động vào thẳng `/customer`. Ẩn hoàn toàn menu Admin. |
-| **Đăng nhập / Đăng ký Khách hàng B2B** | `/customer/login` | Khách hàng B2B mới hoặc đã có tài khoản | Nền *Two Horizons* (`:: Viola`), đăng ký lưu thẳng vào Neon PostgreSQL. |
-| **Cổng đăng nhập Quản trị & Nội bộ** | `/admin` | Điều phối viên, Quản lý/QC, Quản trị hệ thống Mitsui | Nền *Two Horizons* (`:: Aurum`), giữ phiên đăng nhập 7 ngày và tự chuyển vào `/control-tower/admin`. |
-| **Web Điều Phối Mitsui (Control Tower)** | `/control-tower/*` | Nội bộ Mitsui đã đăng nhập qua `/admin` | Bảo vệ bởi phiên cookie ký HMAC 7 ngày; chưa đăng nhập tự chuyển về `/admin`. |
+| **Cổng Khách hàng B2B (Trang chính)** | `/` và `/customer` | Khách hàng B2B (BHX, Saigon Co.op, WinCommerce) | Mở thẳng giao diện Khách hàng B2B ngay lập tức, không cần đăng nhập; có nút chuyển đổi nhanh khách hàng, nút sang `/admin` và nút đổi ngôn ngữ `VI ↔ JA`. |
+| **Cổng Quản trị & Điều phối** | `/admin` và `/control-tower/*` | Điều phối viên, Quản lý/QC, Quản trị hệ thống Mitsui | Mở thẳng vào khu vực quản trị/điều phối (`/control-tower/admin` và các phân hệ con), không bị chặn bởi cổng đăng nhập; có bộ chuyển đổi nhanh vai trò nội bộ. |
 | **App Hiện trường (Mobile-first)** | `/field-app` | HTX, Cơ sở sơ chế, Kho lạnh, Tài xế | Thiết kế nút lớn ngoài trời, có chế độ mất sóng **Offline Mode 24h**. |
 | **Trang Truy xuất QR Công khai** | `/qr/[token]` | Người tiêu dùng (không cần đăng nhập) | Lọc sạch toàn bộ thông tin nội bộ (giá, biển số, tên kho, khiếu nại theo FR-49). |
 
