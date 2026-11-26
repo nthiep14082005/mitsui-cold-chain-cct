@@ -14,3 +14,58 @@
     display: none !important;
   }
 }
+
+@keyframes produceSway {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  50% {
+    transform: rotate(1.3deg) translateY(-2px);
+  }
+}
+
+@keyframes produceSwayReverse {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  50% {
+    transform: rotate(-1.3deg) translateY(-2px);
+  }
+}
+
+@keyframes produceRay {
+  0%,
+  100% {
+    opacity: 0.48;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.animate-produce-sway {
+  animation: produceSway 7s ease-in-out infinite;
+}
+
+.animate-produce-sway-reverse {
+  animation: produceSwayReverse 8s ease-in-out infinite;
+}
+
+.animate-produce-ray {
+  animation: produceRay 9s ease-in-out infinite;
+}
+
+.animate-produce-ray-slow {
+  animation: produceRay 13s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-produce-sway,
+  .animate-produce-sway-reverse,
+  .animate-produce-ray,
+  .animate-produce-ray-slow {
+    animation: none;
+  }
+}

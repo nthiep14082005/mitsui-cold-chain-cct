@@ -12,7 +12,7 @@ import {
   User,
   UserPlus,
 } from 'lucide-react';
-import { TwoHorizonsBackground } from '@/components/auth/two-horizons/TwoHorizonsBackground';
+import { FreshProduceBackground } from '@/components/auth/FreshProduceBackground';
 import { useCct } from '@/components/layout/CctContext';
 import { translateApiMessage, tx } from '@/lib/i18n';
 
@@ -99,18 +99,18 @@ export default function CustomerLoginPage() {
   };
 
   return (
-    <TwoHorizonsBackground defaultScene="viola">
-      <div className="w-full max-w-md rounded-3xl backdrop-blur-md bg-black/55 border border-white/15 shadow-2xl p-6 sm:p-8 text-white">
+    <FreshProduceBackground variant="customer">
+      <div className="w-full max-w-md rounded-3xl backdrop-blur-md bg-white/85 dark:bg-emerald-950/75 border border-emerald-200/80 dark:border-emerald-700/50 shadow-2xl shadow-emerald-950/15 p-6 sm:p-8 text-slate-900 dark:text-white">
         <div className="flex items-center justify-between gap-2 mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-violet-500/25 border border-violet-400/40 flex items-center justify-center text-violet-200 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 border border-emerald-300/80 dark:bg-emerald-800/60 dark:border-emerald-600/50 flex items-center justify-center text-emerald-700 dark:text-emerald-200 shrink-0">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-violet-300">
+              <div className="text-[11px] font-mono font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
                 Mitsui B2B Cold Chain
               </div>
-              <h1 className="text-lg font-bold text-white">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">
                 {tx(lang, 'Cổng Khách hàng B2B', 'B2B顧客ポータル')}
               </h1>
             </div>
@@ -118,20 +118,20 @@ export default function CustomerLoginPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/admin"
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-semibold hover:bg-amber-500/30 transition"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold hover:bg-amber-100 dark:bg-amber-500/20 dark:border-amber-400/40 dark:text-amber-200 dark:hover:bg-amber-500/30 transition"
             >
               <ShieldCheck className="w-3.5 h-3.5" /> Admin
             </Link>
             <Link
               href="/customer"
-              className="inline-flex items-center gap-1 text-xs text-white/70 hover:text-white transition"
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-emerald-800 dark:text-emerald-200/80 dark:hover:text-white transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> B2B
             </Link>
           </div>
         </div>
 
-        <div className="flex gap-2 p-1 rounded-xl bg-white/10 border border-white/10 mb-5">
+        <div className="flex gap-2 p-1 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-700/50 mb-5">
           <button
             type="button"
             onClick={() => {
@@ -139,7 +139,9 @@ export default function CustomerLoginPage() {
               setError('');
             }}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition ${
-              tab === 'login' ? 'bg-violet-500 text-white shadow-sm' : 'text-white/70 hover:text-white'
+              tab === 'login'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-emerald-900 dark:text-emerald-100/75 dark:hover:text-white'
             }`}
           >
             {tx(lang, 'Đăng nhập Khách hàng', 'B2B顧客ログイン')}
@@ -151,7 +153,9 @@ export default function CustomerLoginPage() {
               setError('');
             }}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition ${
-              tab === 'register' ? 'bg-violet-500 text-white shadow-sm' : 'text-white/70 hover:text-white'
+              tab === 'register'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-emerald-900 dark:text-emerald-100/75 dark:hover:text-white'
             }`}
           >
             {tx(lang, 'Đăng ký Khách hàng B2B', 'B2B新規会員登録')}
@@ -162,7 +166,7 @@ export default function CustomerLoginPage() {
           <form onSubmit={handleLogin} className="space-y-3.5">
             {/* Quick-select customer accounts */}
             <div>
-              <div className="text-[11px] text-white/65 mb-1.5">
+              <div className="text-[11px] font-medium text-slate-600 dark:text-emerald-100/75 mb-1.5">
                 {tx(lang, 'Chọn nhanh tài khoản B2B (đã điền sẵn):', 'B2Bデモアカウント クイック選択:')}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -177,8 +181,8 @@ export default function CustomerLoginPage() {
                     }}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${
                       email === acc.email
-                        ? 'bg-violet-500 text-white border-violet-400'
-                        : 'bg-white/10 text-white/80 border-white/15 hover:bg-white/20'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-emerald-50/90 text-emerald-900 border-emerald-200 hover:bg-emerald-100 dark:bg-white/10 dark:text-white/85 dark:border-white/15 dark:hover:bg-white/20'
                     }`}
                   >
                     {acc.label}
@@ -188,38 +192,38 @@ export default function CustomerLoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/80 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">
                 {tx(lang, 'Email doanh nghiệp', '法人メールアドレス')}
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-white/50 absolute left-3.5 top-3" />
+                <Mail className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3.5 top-3" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3.5 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                  className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-10 pr-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-white/80 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">
                 {tx(lang, 'Mật khẩu', 'パスワード')}
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-white/50 absolute left-3.5 top-3" />
+                <Lock className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3.5 top-3" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3.5 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                  className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-10 pr-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                   required
                 />
               </div>
             </div>
 
             {error && (
-              <div className="rounded-xl bg-rose-500/20 border border-rose-400/40 px-3.5 py-2.5 text-xs text-rose-100">
+              <div className="rounded-xl bg-rose-50 border border-rose-300 px-3.5 py-2.5 text-xs font-medium text-rose-700 dark:bg-rose-500/20 dark:border-rose-400/40 dark:text-rose-100">
                 {error}
               </div>
             )}
@@ -227,102 +231,102 @@ export default function CustomerLoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 rounded-xl bg-violet-500 hover:bg-violet-400 text-white font-bold text-sm transition shadow-lg disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition shadow-lg shadow-emerald-900/15 disabled:opacity-50"
             >
               {submitting
                 ? tx(lang, 'Đang đăng nhập...', 'ログイン中...')
                 : tx(lang, 'Đăng nhập Cổng Khách hàng', 'B2Bポータルへログイン')}
             </button>
 
-            <div className="pt-3 border-t border-white/10 text-[11px] text-white/65 font-mono">
+            <div className="pt-3 border-t border-emerald-200/70 dark:border-emerald-700/40 text-[11px] font-medium text-emerald-800 dark:text-emerald-200/85 font-mono">
               BHX: bao.pham@bachhoaxanh.com / Customer@2026
             </div>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-white/80 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">
                 {tx(lang, 'Họ và tên người đại diện', 'ご担当者名')}
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-white/50 absolute left-3.5 top-2.5" />
+                <User className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3.5 top-2.5" />
                 <input
                   type="text"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
                   placeholder={tx(lang, 'Nguyễn Minh An', '山田 太郎')}
-                  className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                  className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-10 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-white/80 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">
                 {tx(lang, 'Tên doanh nghiệp B2B', '法人・企業名')}
               </label>
               <div className="relative">
-                <Building2 className="w-4 h-4 text-white/50 absolute left-3.5 top-2.5" />
+                <Building2 className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3.5 top-2.5" />
                 <input
                   type="text"
                   value={regCompany}
                   onChange={(e) => setRegCompany(e.target.value)}
                   placeholder={tx(lang, 'Chuỗi Thực Phẩm Xanh', 'グリーンフード株式会社')}
-                  className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                  className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-10 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                   required
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-white/80 mb-1">Email</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">Email</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-white/50 absolute left-3 top-2.5" />
+                  <Mail className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3 top-2.5" />
                   <input
                     type="email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="contact@company.vn"
-                    className="w-full rounded-xl bg-white/10 border border-white/20 pl-9 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                    className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                     required
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/80 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">
                   {tx(lang, 'Số điện thoại', '電話番号')}
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-white/50 absolute left-3 top-2.5" />
+                  <Phone className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3 top-2.5" />
                   <input
                     type="tel"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
                     placeholder="0909xxxxxx"
-                    className="w-full rounded-xl bg-white/10 border border-white/20 pl-9 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                    className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                     required
                   />
                 </div>
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-white/80 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-emerald-100/85 mb-1">
                 {tx(lang, 'Mật khẩu (>= 6 ký tự)', 'パスワード（6文字以上）')}
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-white/50 absolute left-3.5 top-2.5" />
+                <Lock className="w-4 h-4 text-emerald-600/70 dark:text-emerald-300/70 absolute left-3.5 top-2.5" />
                 <input
                   type="password"
                   minLength={6}
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  className="w-full rounded-xl bg-white/10 border border-white/20 pl-10 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-violet-400"
+                  className="w-full rounded-xl bg-white/90 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 pl-10 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                   required
                 />
               </div>
             </div>
 
             {error && (
-              <div className="rounded-xl bg-rose-500/20 border border-rose-400/40 px-3.5 py-2.5 text-xs text-rose-100">
+              <div className="rounded-xl bg-rose-50 border border-rose-300 px-3.5 py-2.5 text-xs font-medium text-rose-700 dark:bg-rose-500/20 dark:border-rose-400/40 dark:text-rose-100">
                 {error}
               </div>
             )}
@@ -330,7 +334,7 @@ export default function CustomerLoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 rounded-xl bg-violet-500 hover:bg-violet-400 text-white font-bold text-sm transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition shadow-lg shadow-emerald-900/15 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <UserPlus className="w-4 h-4" />
               {submitting
@@ -340,6 +344,6 @@ export default function CustomerLoginPage() {
           </form>
         )}
       </div>
-    </TwoHorizonsBackground>
+    </FreshProduceBackground>
   );
 }
